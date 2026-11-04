@@ -10,7 +10,8 @@ from core.models import SiteSettings
 from core.permissions import IsAdministracion, IsProfesor, IsSuperAdmin
 from core.roles import is_profesor
 from core.utils import log_action
-from courses.models import Course, CourseModule, CourseStatus, Lesson, LessonNote
+from courses.models import Course, CourseModule, CourseQuestion, CourseReview, CourseStatus, Lesson, LessonNote
+from courses.teacher_engagement_serializers import CourseQuestionSerializer, CourseReviewSerializer
 from courses.serializers import (
     CourseDetailSerializer,
     CourseListSerializer,
@@ -264,7 +265,9 @@ class TeacherStatsView(APIView):
         courses = Course.objects.filter(teacher=request.user)
         published = courses.filter(status=CourseStatus.PUBLISHED).count()
         students = sum(c.student_count for c in courses)
-        pending_questions = 7  # demo metric
+        pending_questions = CourseQuestion.objects.filter(
+            course__teacher=request.user, answer=""
+        ).count()
         return Response(
             {
                 "total_students": students,
@@ -309,3 +312,38 @@ class AdminCourseListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Course.objects.all().select_related("teacher", "category")
+
+
+class TeacherQuestionsView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsProfesor]
+    serializer_class = CourseQuestionSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return CourseQuestion.objects.filter(course__teacher=self.request.user).select_related(
+            "course", "student", "lesson"
+        )
+
+
+class TeacherQuestionReplyView(APIView):
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def post(self, request, pk):
+        question = CourseQuestion.objects.select_related("course").get(pk=pk)
+        if question.course.teacher != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        question.answer = request.data.get("answer", "")
+        question.answered_at = timezone.now()
+        question.save(update_fields=["answer", "answered_at"])
+        return Response(CourseQuestionSerializer(question).data)
+
+
+class TeacherReviewsView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsProfesor]
+    serializer_class = CourseReviewSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return CourseReview.objects.filter(course__teacher=self.request.user).select_related(
+            "course", "student"
+        )

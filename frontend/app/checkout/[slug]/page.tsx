@@ -37,10 +37,11 @@ export default function CheckoutPage() {
       },
       body: JSON.stringify({ method: 'webpay' }),
     }).then(async (res) => {
-      if (res.status === 402) {
-        const data = await res.json();
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.transaction_id) {
         setTransactionId(data.transaction_id);
-      } else if (res.ok) {
+      } else {
         router.replace(`/cursos/${slug}`);
       }
     });

@@ -19,7 +19,7 @@ type Revenue = {
   month_revenue_clp: number;
   month_sales: number;
   average_ticket_clp: number;
-  monthly_chart: { month: string; amount_millions: number }[];
+  monthly_chart: { month: string; amount_millions: number; amount_clp: number }[];
   revenue_by_course: { course: string; amount_clp: number }[];
   recent_transactions: {
     external_id: string;
@@ -55,7 +55,7 @@ export default function AdminPanelPage() {
     a.click();
   };
 
-  const maxBar = Math.max(...(data?.monthly_chart.map((m) => m.amount_millions) || [1]));
+  const maxBar = Math.max(...(data?.monthly_chart.map((m) => m.amount_clp) || [0]), 1);
 
   return (
     <PanelShell roleTag="Super admin" nav={nav} active="Ingresos">
@@ -83,13 +83,14 @@ export default function AdminPanelPage() {
       </div>
       <div className="mb-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Card className="p-6">
-          <b className="text-lg">Ingresos mensuales (millones CLP)</b>
-          <div className="mt-5 flex h-60 items-end gap-2">
+          <b className="text-lg">Ingresos mensuales (CLP)</b>
+          <div className="mt-5 flex h-60 items-end gap-2" data-testid="revenue-monthly-chart">
             {data?.monthly_chart.map((m, i) => (
-              <div key={m.month} className="flex flex-1 flex-col items-center gap-2">
+              <div key={`${m.month}-${i}`} className="flex flex-1 flex-col items-center gap-2">
                 <div
-                  className={`w-full rounded-t-lg ${i === 11 ? 'bg-ink' : 'bg-[#cfc8bb]'}`}
-                  style={{ height: `${(m.amount_millions / maxBar) * 200}px` }}
+                  className={`w-full min-h-[4px] rounded-t-lg ${i === data.monthly_chart.length - 1 ? 'bg-ink' : 'bg-[#cfc8bb]'}`}
+                  style={{ height: `${Math.max(4, (m.amount_clp / maxBar) * 200)}px` }}
+                  title={formatCLP(m.amount_clp)}
                 />
                 <span className="text-xs text-muted">{m.month}</span>
               </div>

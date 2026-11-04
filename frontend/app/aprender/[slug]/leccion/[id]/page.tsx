@@ -41,28 +41,40 @@ export default function LessonPlayerPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/lessons/${lessonId}/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then(setLesson);
+    let cancelled = false;
 
-    fetch(`${API_URL}/courses/${slug}/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((c) => {
+    (async () => {
+      const lessonRes = await fetch(`${API_URL}/lessons/${lessonId}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!cancelled && lessonRes.ok) {
+        setLesson(await lessonRes.json());
+      }
+
+      const courseRes = await fetch(`${API_URL}/courses/${slug}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!cancelled && courseRes.ok) {
+        const c = await courseRes.json();
         setCourseData(c);
         setCourseTitle(c.title);
         setLessons(flatLessons(c));
-      });
+      }
 
-    fetch(`${API_URL}/lessons/${lessonId}/notes/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d) => setNotes(Array.isArray(d) ? d : d.results || []));
-    loadProgress();
+      const notesRes = await fetch(`${API_URL}/lessons/${lessonId}/notes/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!cancelled && notesRes.ok) {
+        const d = await notesRes.json();
+        setNotes(Array.isArray(d) ? d : d.results || []);
+      }
+
+      await loadProgress();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [lessonId, slug, token]);
 
   const markComplete = async () => {
@@ -103,6 +115,7 @@ export default function LessonPlayerPage() {
       },
       body: JSON.stringify({ timestamp_seconds: currentTime, text: noteText }),
     });
+    if (!res.ok) return;
     const created = await res.json();
     setNotes((n) => [...n, created]);
     setNoteText('');
@@ -142,7 +155,7 @@ export default function LessonPlayerPage() {
             <div className="my-6 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  Lección {idx + 1} de {lessons.length || 26}
+                  Lección {idx >= 0 ? idx + 1 : '—'} de {lessons.length || '—'}
                 </div>
                 <SectionTitle className="!text-[32px]">{lesson?.title || 'Lección'}</SectionTitle>
               </div>

@@ -240,6 +240,44 @@ class Command(BaseCommand):
             },
         )
 
+        from courses.models import CourseQuestion, CourseReview
+
+        first_romans_lesson = Lesson.objects.filter(module__course=romans).order_by(
+            "module__order", "order"
+        ).first()
+        CourseQuestion.objects.get_or_create(
+            course=romans,
+            student=camila,
+            question="¿Cómo aplico Romanos 12 en el servicio diario?",
+            defaults={"lesson": first_romans_lesson},
+        )
+        CourseQuestion.objects.get_or_create(
+            course=Course.objects.get(slug="fundamentos-de-la-fe"),
+            student=camila,
+            question="¿Hay material extra para el módulo de oración?",
+            defaults={},
+        )
+        CourseReview.objects.update_or_create(
+            course=romans,
+            student=camila,
+            defaults={"rating": 5, "body": "Profundidad bíblica excelente y muy clara."},
+        )
+        CourseReview.objects.update_or_create(
+            course=Course.objects.get(slug="liderazgo-con-proposito"),
+            student=camila,
+            defaults={"rating": 5, "body": "Muy práctico para líderes de célula."},
+        )
+
+        from certificates.services import issue_certificate
+
+        from certificates.models import Certificate
+
+        if not Certificate.objects.filter(enrollment=enrollment).exists():
+            try:
+                issue_certificate(enrollment)
+            except Exception:
+                pass
+
         # Extra cursos demo para panel profesor
         Course.objects.update_or_create(
             slug="cartas-de-pablo-ii",

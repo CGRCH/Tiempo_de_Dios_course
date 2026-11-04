@@ -57,22 +57,31 @@ class RevenueDashboardSerializer:
 
         month_names = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
         monthly_chart = []
-        cursor = month_start
-        for _ in range(12):
-            prev_end = cursor
-            cursor = (cursor - timezone.timedelta(days=1)).replace(day=1)
+        year = month_start.year
+        month = month_start.month
+        for offset in range(11, -1, -1):
+            m = month - offset
+            y = year
+            while m <= 0:
+                m += 12
+                y -= 1
+            start = timezone.datetime(y, m, 1, tzinfo=timezone.get_current_timezone())
+            if m == 12:
+                end = timezone.datetime(y + 1, 1, 1, tzinfo=timezone.get_current_timezone())
+            else:
+                end = timezone.datetime(y, m + 1, 1, tzinfo=timezone.get_current_timezone())
             amount = (
-                paid.filter(created_at__gte=cursor, created_at__lt=prev_end).aggregate(
-                    s=Sum("amount_clp")
-                )["s"]
+                paid.filter(created_at__gte=start, created_at__lt=end).aggregate(s=Sum("amount_clp"))[
+                    "s"
+                ]
                 or 0
             )
-            monthly_chart.insert(
-                0,
+            monthly_chart.append(
                 {
-                    "month": month_names[cursor.month - 1],
+                    "month": month_names[m - 1],
+                    "amount_clp": amount,
                     "amount_millions": round(amount / 1_000_000, 2),
-                },
+                }
             )
 
         revenue_by_course = [

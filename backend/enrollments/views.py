@@ -68,6 +68,11 @@ class EnrollCourseView(APIView):
 
     def post(self, request, slug):
         course = Course.objects.get(slug=slug, status=CourseStatus.PUBLISHED)
+        existing = Enrollment.objects.filter(
+            user=request.user, course=course, is_active=True
+        ).first()
+        if existing:
+            return Response(EnrollmentSerializer(existing, context={"request": request}).data)
         if course.price_clp == 0:
             enrollment, created = Enrollment.objects.get_or_create(
                 user=request.user, course=course, defaults={"is_active": True}
@@ -79,7 +84,7 @@ class EnrollCourseView(APIView):
             return Response(EnrollmentSerializer(enrollment, context={"request": request}).data)
         checkout = CheckoutService()
         result = checkout.start(request.user, course, request.data.get("method", "webpay"))
-        return Response(result, status=status.HTTP_402_PAYMENT_REQUIRED)
+        return Response({**result, "payment_required": True})
 
 
 class ConfirmEnrollmentView(APIView):

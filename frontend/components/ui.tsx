@@ -2,6 +2,7 @@
 
 import { UserMenu } from '@/components/UserMenu';
 import clsx from 'clsx';
+import type { ComponentPropsWithoutRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -193,9 +194,12 @@ export function SectionTitle({ children, className }: { children: React.ReactNod
   );
 }
 
-export function ProgressBar({ value }: { value: number }) {
+export function ProgressBar({
+  value,
+  ...rest
+}: { value: number } & ComponentPropsWithoutRef<'div'>) {
   return (
-    <div className="h-1.5 overflow-hidden rounded-full bg-[#ebe7e0]">
+    <div className="h-1.5 overflow-hidden rounded-full bg-[#ebe7e0]" {...rest}>
       <div className="h-full bg-ink" style={{ width: `${Math.min(100, value)}%` }} />
     </div>
   );

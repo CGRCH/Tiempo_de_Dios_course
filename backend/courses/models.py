@@ -120,3 +120,28 @@ class LessonNote(models.Model):
 
     class Meta:
         ordering = ["timestamp_seconds"]
+
+
+class CourseQuestion(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="questions")
+    student = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="course_questions")
+    lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, null=True, blank=True)
+    question = models.TextField()
+    answer = models.TextField(blank=True)
+    answered_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class CourseReview(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews")
+    student = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="course_reviews")
+    rating = models.PositiveSmallIntegerField(default=5)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("course", "student")

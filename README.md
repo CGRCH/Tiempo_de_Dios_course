@@ -111,6 +111,6 @@ docker-compose.yml
 
 - Los videos usan tareas Celery; en CI `CELERY_TASK_ALWAYS_EAGER=1`.
 - Certificados PDF se generan con ReportLab al completar un curso.
-- El checkout pago devuelve HTTP 402 con `transaction_id`; el frontend confirma vía `/api/checkout/confirm/`.
+- El checkout pago devuelve `transaction_id` en la respuesta de inscripción; el frontend confirma vía `/api/checkout/confirm/`.
 
 © 2026 Tiempo de Dios · Maqueta de demostración — contenido ficticio

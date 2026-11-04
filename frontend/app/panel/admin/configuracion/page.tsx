@@ -17,6 +17,7 @@ const nav = [
 export default function AdminConfigPage() {
   const { token } = useAuth();
   const [visible, setVisible] = useState(false);
+  const [savedMsg, setSavedMsg] = useState('');
 
   useEffect(() => {
     if (!token) return;
@@ -24,11 +25,12 @@ export default function AdminConfigPage() {
   }, [token]);
 
   const save = async () => {
-    await fetch(`${API_URL}/admin/settings/`, {
+    const res = await fetch(`${API_URL}/admin/settings/`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ teacher_earnings_visible: visible }),
     });
+    if (res.ok) setSavedMsg('Configuración guardada correctamente.');
   };
 
   return (
@@ -47,6 +49,11 @@ export default function AdminConfigPage() {
         <button data-testid="save-settings" type="button" onClick={save} className="mt-4 rounded-full bg-ink px-4 py-2 text-white">
           Guardar
         </button>
+        {savedMsg && (
+          <p className="mt-3 text-sm text-[#1d5e2e]" data-testid="settings-saved">
+            {savedMsg}
+          </p>
+        )}
       </Card>
     </PanelShell>
   );
