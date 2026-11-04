@@ -135,13 +135,15 @@ export function Pill({
   onClick,
   variant = 'solid',
   className,
+  ...rest
 }: {
   children: React.ReactNode;
   href?: string;
   onClick?: () => void;
   variant?: 'solid' | 'ghost' | 'light';
   className?: string;
-}) {
+} & React.ButtonHTMLAttributes<HTMLButtonElement> &
+  React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   const base = clsx(
     'inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15px] font-semibold transition',
     variant === 'solid' && 'bg-ink text-white',
@@ -149,9 +151,9 @@ export function Pill({
     variant === 'light' && 'bg-white text-ink',
     className,
   );
-  if (href) return <Link href={href} className={base}>{children}</Link>;
+  if (href) return <Link href={href} className={base} {...rest}>{children}</Link>;
   return (
-    <button type="button" onClick={onClick} className={base}>
+    <button type="button" onClick={onClick} className={base} {...rest}>
       {children}
     </button>
   );

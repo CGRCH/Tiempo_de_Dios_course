@@ -22,7 +22,10 @@ export function VideoPlayer({
       return;
     }
     if (Hls.isSupported()) {
-      const hls = new Hls();
+      const hls = new Hls({ enableWorker: false });
+      hls.on(Hls.Events.ERROR, () => {
+        /* evitar crash si el manifiesto HLS demo no está disponible */
+      });
       hls.loadSource(src);
       hls.attachMedia(video);
       return () => hls.destroy();

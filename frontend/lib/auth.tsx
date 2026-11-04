@@ -14,13 +14,10 @@ type AuthCtx = {
 const Ctx = createContext<AuthCtx | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('td_token') : null,
+  );
   const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const t = localStorage.getItem('td_token');
-    if (t) setToken(t);
-  }, []);
 
   const refreshUser = useCallback(async () => {
     if (!token) {

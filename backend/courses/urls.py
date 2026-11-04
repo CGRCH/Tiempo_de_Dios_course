@@ -12,6 +12,9 @@ from courses.views import (
     SubmitCourseReviewView,
     TeacherCourseDetailView,
     TeacherCourseListView,
+    TeacherLessonCreateView,
+    TeacherModuleCreateView,
+    TeacherStudentsView,
     TeacherStatsView,
 )
 
@@ -25,7 +28,10 @@ urlpatterns = [
         SubmitCourseReviewView.as_view(),
         name="course-submit-review",
     ),
+    path("teacher/students/", TeacherStudentsView.as_view()),
     path("teacher/stats/", TeacherStatsView.as_view(), name="teacher-stats"),
+    path("teacher/courses/<slug:slug>/modules/", TeacherModuleCreateView.as_view()),
+    path("teacher/modules/<int:module_id>/lessons/", TeacherLessonCreateView.as_view()),
     path("teacher/lessons/<int:lesson_id>/video/", LessonVideoUploadView.as_view()),
     path("lessons/<int:pk>/", LessonDetailView.as_view(), name="lesson-detail"),
     path("lessons/<int:lesson_id>/notes/", LessonNoteListCreateView.as_view()),

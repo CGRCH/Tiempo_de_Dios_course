@@ -14,7 +14,7 @@ class CertificateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Certificate
-        fields = ("verification_code", "course_title", "user_name", "issued_at", "pdf_url")
+        fields = ("id", "verification_code", "course_title", "user_name", "issued_at", "pdf_url")
 
 
 class MyCertificatesView(generics.ListAPIView):

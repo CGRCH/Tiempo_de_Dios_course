@@ -46,7 +46,9 @@ export default function ProfesorPanelPage() {
             Mis <span className="serif normal-case">cursos</span>
           </Headline>
         </div>
-        <Pill>＋ Crear curso</Pill>
+        <Pill href="/panel/profesor/crear" data-testid="create-course-link">
+          ＋ Crear curso
+        </Pill>
       </div>
       <div className="mb-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {[

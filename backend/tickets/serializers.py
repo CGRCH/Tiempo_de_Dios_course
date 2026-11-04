@@ -27,3 +27,4 @@ class SupportTicketSerializer(serializers.ModelSerializer):
             "created_at",
             "replies",
         )
+        read_only_fields = ("status", "user_name", "created_at", "replies")

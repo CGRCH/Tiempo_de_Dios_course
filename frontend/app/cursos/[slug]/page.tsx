@@ -161,13 +161,17 @@ export default function CourseDetailPage() {
                   {!free && <span className="text-base font-medium text-muted">CLP</span>}
                 </div>
                 <p className="mb-4 text-sm text-muted">Pago único · acceso de por vida</p>
-                <Pill className="w-full" onClick={enroll}>
+                <Pill className="w-full" data-testid="enroll-button" onClick={enroll}>
                   Inscribirme
                 </Pill>
                 <Pill variant="ghost" className="mt-2 w-full" href={`/aprender/${slug}/leccion/1`}>
                   Ver lección gratis
                 </Pill>
-                {checkoutMsg && <p className="mt-3 text-sm text-[#1d5e2e]">{checkoutMsg}</p>}
+                {checkoutMsg && (
+                  <p className="mt-3 text-sm text-[#1d5e2e]" data-testid="enroll-message">
+                    {checkoutMsg}
+                  </p>
+                )}
                 <ul className="mt-5 grid gap-2 text-[15px]">
                   <li>
                     <b>Certificado incluido</b>

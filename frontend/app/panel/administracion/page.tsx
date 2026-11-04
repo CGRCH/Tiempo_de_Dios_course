@@ -41,11 +41,39 @@ export default function AdministracionPanelPage() {
       .then((d) => setUsers((d.results || d).slice(0, 5)));
   }, [token]);
 
+  const approveCourse = async (slug: string) => {
+    await fetch(`${API_URL}/admin/courses/${slug}/approve/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'approve' }),
+    });
+  };
+
+  const replyTicket = async (id: number) => {
+    await fetch(`${API_URL}/admin/tickets/${id}/reply/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Respuesta de soporte QA', status: 'in_progress' }),
+    });
+  };
+
+  const manualEnroll = async () => {
+    const u = users[0];
+    const c = pending[0];
+    if (!u || !c) return;
+    await fetch(`${API_URL}/admin/enrollments/manual/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: u.id, course_id: c.id }),
+    });
+  };
+
   const priorityTone = (p: string) =>
     p === 'high' ? 'red' : p === 'medium' ? 'rev' : 'dr';
 
   return (
     <PanelShell roleTag="Administración · Soporte" nav={nav} active="Resumen">
+      <div data-testid="support-dashboard" aria-hidden="true" className="h-0 w-0 overflow-hidden" />
       <Headline className="mb-7 !text-[56px]">
         Centro de <span className="serif normal-case">soporte</span>
       </Headline>
@@ -75,19 +103,33 @@ export default function AdministracionPanelPage() {
                 <Tag tone={priorityTone(t.priority)}>{t.priority}</Tag>
               </div>
               <div className="text-xs text-muted">{t.user_name}</div>
+              <button
+                type="button"
+                data-testid={`reply-ticket-${t.id}`}
+                className="mt-2 text-sm font-semibold underline"
+                onClick={() => replyTicket(t.id)}
+              >
+                Responder
+              </button>
             </div>
           ))}
         </Card>
         <Card className="p-6">
           <b className="text-lg">Cursos pendientes de aprobación</b>
-          {pending.map((c: { id: number; title: string; teacher_name: string }) => (
+          {pending.map((c: { id: number; title: string; teacher_name: string; slug?: string }) => (
             <div key={c.id} className="flex items-center gap-3 border-t border-[#f0ede8] py-3">
               <div className="h-11 w-16 rounded-lg bg-[#cfc8bb]" />
               <div className="flex-1">
                 <b className="text-[15px]">{c.title}</b>
                 <div className="text-xs text-muted">{c.teacher_name}</div>
               </div>
-              <Pill className="!px-3 !py-2 text-xs">Aprobar</Pill>
+              <Pill
+                data-testid={`approve-${c.slug || c.id}`}
+                className="!px-3 !py-2 text-xs"
+                onClick={() => approveCourse((c as { slug?: string }).slug || '')}
+              >
+                Aprobar
+              </Pill>
               <Pill variant="ghost" className="!px-3 !py-2 text-xs">
                 Revisar
               </Pill>
@@ -130,6 +172,9 @@ export default function AdministracionPanelPage() {
             ))}
           </tbody>
         </table>
+        <button type="button" data-testid="manual-enroll" onClick={manualEnroll} className="p-5 text-sm underline">
+          Inscripción manual (demo)
+        </button>
       </Card>
     </PanelShell>
   );

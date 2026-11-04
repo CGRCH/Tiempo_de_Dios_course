@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from core.permissions import IsAdministracion, IsProfesor, IsSuperAdmin
 from core.roles import is_profesor
 from core.utils import log_action
-from courses.models import Course, CourseStatus, Lesson, LessonNote
+from courses.models import Course, CourseModule, CourseStatus, Lesson, LessonNote
 from courses.serializers import (
     CourseDetailSerializer,
     CourseListSerializer,
@@ -152,9 +152,14 @@ class LessonDetailView(generics.RetrieveAPIView):
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
         lesson = self.get_object()
-        ctx["enrolled"] = Enrollment.objects.filter(
-            user=self.request.user, course=lesson.course, is_active=True
-        ).exists()
+        user = self.request.user
+        preview = lesson.is_preview
+        enrolled = False
+        if user.is_authenticated:
+            enrolled = Enrollment.objects.filter(
+                user=user, course=lesson.course, is_active=True
+            ).exists()
+        ctx["enrolled"] = enrolled or preview
         return ctx
 
 
@@ -189,7 +194,58 @@ class LessonVideoUploadView(APIView):
         lesson.duration_seconds = int(request.data.get("duration_seconds", 600))
         lesson.save(update_fields=["duration_seconds"])
         transcode_lesson_video.delay(lesson.id, saved)
-        return Response({"status": "processing"})
+        return Response({"status": "processing", "lesson_id": lesson.id})
+
+
+class TeacherModuleCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def post(self, request, slug):
+        course = Course.objects.get(slug=slug, teacher=request.user)
+        title = request.data.get("title", "Nuevo módulo")
+        order = course.modules.count()
+        mod = CourseModule.objects.create(course=course, title=title, order=order)
+        return Response({"id": mod.id, "title": mod.title, "order": mod.order})
+
+
+class TeacherLessonCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def post(self, request, module_id):
+        module = CourseModule.objects.select_related("course").get(pk=module_id)
+        if module.course.teacher != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        order = module.lessons.count()
+        lesson = Lesson.objects.create(
+            module=module,
+            title=request.data.get("title", f"Lección {order + 1}"),
+            order=order,
+            duration_seconds=int(request.data.get("duration_seconds", 300)),
+            is_preview=bool(request.data.get("is_preview", False)),
+        )
+        return Response({"id": lesson.id, "title": lesson.title})
+
+
+class TeacherStudentsView(APIView):
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        from enrollments.models import Enrollment
+
+        enrollments = (
+            Enrollment.objects.filter(course__teacher=request.user, is_active=True)
+            .select_related("user", "course")
+            .order_by("-enrolled_at")[:100]
+        )
+        rows = [
+            {
+                "student": e.user.get_full_name() or e.user.username,
+                "course": e.course.title,
+                "progress_percent": e.progress_percent,
+            }
+            for e in enrollments
+        ]
+        return Response(rows)
 
 
 class TeacherStatsView(APIView):

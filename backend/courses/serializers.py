@@ -40,6 +40,8 @@ class LessonDetailSerializer(LessonSerializer):
         enrolled = self.context.get("enrolled", False)
         if not enrolled and not obj.is_preview:
             return None
+        if not obj.hls_path and obj.video_status != "ready":
+            return None
         if not obj.hls_path:
             return None
         from courses.video_signing import sign_media_path
@@ -155,9 +157,14 @@ class CourseDetailSerializer(CourseListSerializer):
 
 
 class CourseWriteSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    slug = serializers.SlugField(read_only=True)
+
     class Meta:
         model = Course
         fields = (
+            "id",
+            "slug",
             "title",
             "description",
             "category",

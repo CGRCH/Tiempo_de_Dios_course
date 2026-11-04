@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Pill, SiteFooter, SiteHeader } from '@/components/ui';
+import { Card, SiteFooter, SiteHeader } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -28,10 +28,11 @@ export default function LoginPage() {
       <section className="mx-auto max-w-md px-4 py-16">
         <h1 className="text-3xl font-black uppercase">Ingresar</h1>
         <Card className="mt-8 p-8">
-          <form onSubmit={submit} className="space-y-4">
+          <form data-testid="login-form" onSubmit={submit} className="space-y-4">
             <label className="block text-sm font-medium">
               Usuario
               <input
+                data-testid="login-username"
                 className="mt-1 w-full rounded-xl border border-[#ddd] px-4 py-2"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -40,6 +41,7 @@ export default function LoginPage() {
             <label className="block text-sm font-medium">
               Contraseña
               <input
+                data-testid="login-password"
                 type="password"
                 className="mt-1 w-full rounded-xl border border-[#ddd] px-4 py-2"
                 value={password}
@@ -49,6 +51,7 @@ export default function LoginPage() {
             {error && <p className="text-sm text-red-700">{error}</p>}
             <button
               type="submit"
+              data-testid="login-submit"
               className="inline-flex w-full items-center justify-center rounded-full bg-ink px-6 py-3 text-[15px] font-semibold text-white"
             >
               Entrar

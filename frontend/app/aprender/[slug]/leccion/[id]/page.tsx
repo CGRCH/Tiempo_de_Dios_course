@@ -44,9 +44,29 @@ export default function LessonPlayerPage() {
     fetch(`${API_URL}/lessons/${lessonId}/notes/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then(setNotes);
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setNotes(Array.isArray(d) ? d : d.results || []));
   }, [lessonId, slug, token]);
+
+  const markComplete = async () => {
+    if (!token) return;
+    await fetch(`${API_URL}/lessons/${lessonId}/progress/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: true, last_position_seconds: currentTime }),
+    });
+  };
+
+  const completeAll = async () => {
+    if (!token) return;
+    for (const l of lessons) {
+      await fetch(`${API_URL}/lessons/${l.id}/progress/`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: true, last_position_seconds: l.duration_seconds }),
+      });
+    }
+  };
 
   const addNote = async () => {
     if (!token || !noteText.trim()) return;
@@ -121,6 +141,24 @@ export default function LessonPlayerPage() {
                 />
                 <button type="button" onClick={addNote} className="font-bold">
                   ＋
+                </button>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  data-testid="mark-lesson-complete"
+                  onClick={markComplete}
+                  className="rounded-full border px-3 py-1 text-sm"
+                >
+                  Marcar lección completada
+                </button>
+                <button
+                  type="button"
+                  data-testid="complete-course"
+                  onClick={completeAll}
+                  className="rounded-full bg-ink px-3 py-1 text-sm text-white"
+                >
+                  Completar curso
                 </button>
               </div>
               {notes.map((n) => (

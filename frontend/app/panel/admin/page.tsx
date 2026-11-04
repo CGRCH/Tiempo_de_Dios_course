@@ -42,6 +42,19 @@ export default function AdminPanelPage() {
       .then(setData);
   }, [token]);
 
+  const exportCsv = async () => {
+    const r = await fetch(`${API_URL}/admin/transactions/export/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const text = await r.text();
+    const blob = new Blob([text], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transacciones.csv';
+    a.click();
+  };
+
   const maxBar = Math.max(...(data?.monthly_chart.map((m) => m.amount_millions) || [1]));
 
   return (
@@ -50,7 +63,7 @@ export default function AdminPanelPage() {
         <Headline className="!text-[56px]">
           Panel de <span className="serif normal-case">ingresos</span>
         </Headline>
-        <Pill variant="ghost" href={`${API_URL}/admin/transactions/export/`}>
+        <Pill variant="ghost" data-testid="export-csv" onClick={exportCsv}>
           Exportar CSV
         </Pill>
       </div>

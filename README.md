@@ -41,6 +41,19 @@ docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py seed_demo
 ```
 
+> **Nota Docker:** si el daemon corre con `--iptables=false`, el compose publica PostgreSQL/Redis en el host y los servicios Django/Celery usan `host.docker.internal` (ver `docker-compose.yml`).
+
+## QA end-to-end
+
+```bash
+bash scripts/e2e-qa.sh
+# o manualmente:
+cd e2e && npm install && npx playwright install chromium
+E2E_BASE_URL=http://localhost:3000 E2E_API_URL=http://localhost:8000/api npx playwright test
+```
+
+Checklist detallado: [docs/QA-CHECKLIST.md](docs/QA-CHECKLIST.md)
+
 ## Cuentas demo
 
 Contraseña para todas: **`Demo2026!`**

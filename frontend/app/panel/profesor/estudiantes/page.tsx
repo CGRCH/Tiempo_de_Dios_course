@@ -1,0 +1,53 @@
+'use client';
+
+import { PanelShell } from '@/components/PanelShell';
+import { Card } from '@/components/ui';
+import { API_URL } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { useEffect, useState } from 'react';
+
+const nav = [
+  { href: '/panel/profesor', label: 'Mis cursos' },
+  { href: '/panel/profesor/estudiantes', label: 'Estudiantes' },
+  { href: '/panel/profesor/preguntas', label: 'Preguntas' },
+  { href: '/panel/profesor/resenas', label: 'Reseñas' },
+  { href: '/panel/profesor/perfil', label: 'Perfil' },
+];
+
+export default function TeacherStudentsPage() {
+  const { token } = useAuth();
+  const [rows, setRows] = useState<{ student: string; course: string; progress_percent: number }[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/teacher/students/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then(setRows);
+  }, [token]);
+
+  return (
+    <PanelShell roleTag="Profesor" nav={nav} active="Estudiantes">
+      <h1 className="text-3xl font-black uppercase">Estudiantes</h1>
+      <Card className="mt-6 overflow-x-auto">
+        <table className="w-full text-sm" data-testid="teacher-students-table">
+          <thead>
+            <tr>
+              <th className="p-3 text-left">Estudiante</th>
+              <th className="p-3 text-left">Curso</th>
+              <th className="p-3 text-left">Progreso</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t">
+                <td className="p-3">{r.student}</td>
+                <td className="p-3">{r.course}</td>
+                <td className="p-3">{r.progress_percent}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </PanelShell>
+  );
+}

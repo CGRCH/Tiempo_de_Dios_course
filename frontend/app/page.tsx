@@ -133,6 +133,7 @@ export default function HomePage() {
           <Card className="mb-4 flex items-center gap-3 rounded-full p-1.5 pl-5">
             <span aria-hidden>⌕</span>
             <input
+              data-testid="catalog-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && load()}
@@ -154,6 +155,7 @@ export default function HomePage() {
                     ? 'bg-ink text-white'
                     : 'border-[1.5px] border-ink bg-transparent'
                 }`}
+                data-testid={`filter-${f}`}
               >
                 {f}
               </button>
