@@ -2,6 +2,7 @@
 
 import { CourseCover } from '@/components/CourseCover';
 import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader, Tag } from '@/components/ui';
+import { firstPreviewLesson } from '@/lib/courseLessons';
 import { API_URL, Course, formatCLP } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useParams, useRouter } from 'next/navigation';
@@ -59,7 +60,14 @@ export default function CheckoutPage() {
     setBusy(false);
     if (res.ok) {
       setMsg('¡Pago confirmado! Ya estás inscrito.');
-      setTimeout(() => router.push(`/cursos/${slug}`), 1500);
+      const enrollment = await res.json();
+      const preview = course ? firstPreviewLesson(course) : null;
+      const lessonId =
+        preview?.id ||
+        enrollment?.current_lesson_id ||
+        course?.modules?.[0]?.lessons?.[0]?.id;
+      const dest = lessonId ? `/aprender/${slug}/leccion/${lessonId}` : `/cursos/${slug}`;
+      setTimeout(() => router.push(dest), 800);
     }
   };
 

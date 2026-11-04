@@ -4,26 +4,18 @@ import { PanelShell } from '@/components/PanelShell';
 import { Card, Pill } from '@/components/ui';
 import { API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useProfesorNav } from '@/lib/useProfesorNav';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { profesorNav } from '@/lib/panelNav';
+export default function TeacherCourseEditPage() {
   const { slug } = useParams() as { slug: string };
   const { token } = useAuth();
+  const nav = useProfesorNav();
   const [moduleId, setModuleId] = useState<number | null>(null);
   const [lessonId, setLessonId] = useState<number | null>(null);
   const [videoStatus, setVideoStatus] = useState('');
   const [msg, setMsg] = useState('');
-  const [showEarnings, setShowEarnings] = useState(false);
-
-  useEffect(() => {
-    if (!token) return;
-    fetch(`${API_URL}/teacher/stats/`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((d) => setShowEarnings(!!d.teacher_earnings_visible));
-  }, [token]);
-
-  const nav = profesorNav(showEarnings);
 
   const createModule = async () => {
     if (!token) return;

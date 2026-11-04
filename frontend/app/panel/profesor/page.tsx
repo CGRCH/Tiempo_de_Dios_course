@@ -1,17 +1,17 @@
 'use client';
 
-import { profesorNav } from '@/lib/panelNav';
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Headline, Pill, Tag } from '@/components/ui';
 import { API_URL, Course } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useProfesorNav } from '@/lib/useProfesorNav';
 import { useEffect, useState } from 'react';
 
 export default function ProfesorPanelPage() {
   const { token, user } = useAuth();
+  const nav = useProfesorNav();
   const [courses, setCourses] = useState<Course[]>([]);
   const [stats, setStats] = useState<Record<string, string | number | boolean>>({});
-  const nav = profesorNav(!!stats.teacher_earnings_visible);
 
   useEffect(() => {
     if (!token) return;
@@ -51,9 +51,9 @@ export default function ProfesorPanelPage() {
           ['Valoración media', stats.average_rating || '4,9 ★'],
           ['Preguntas sin responder', stats.unanswered_questions || 7],
         ].map(([label, value]) => (
-          <Card key={label} className="p-5">
+          <Card key={String(label)} className="p-5">
             <span className="text-sm text-muted">{label}</span>
-            <b className="mt-1 block text-3xl font-black">{value}</b>
+            <b className="mt-1 block text-3xl font-black">{String(value)}</b>
           </Card>
         ))}
       </div>

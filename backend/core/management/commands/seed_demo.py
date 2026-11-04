@@ -109,6 +109,70 @@ class Command(BaseCommand):
             "Aplicar Romanos 12 a tu comunidad",
             "Herramientas para estudiar la Biblia por tu cuenta",
         ]
+        objectives_fund = [
+            "Comprender las bases de la fe cristiana",
+            "Desarrollar una vida de oración",
+            "Conocer la Biblia como guía",
+            "Vivir en comunidad con otros creyentes",
+        ]
+        objectives_lid = [
+            "Definir liderazgo servicial según las Escrituras",
+            "Identificar tu llamado y dones",
+            "Formar equipos saludables",
+            "Tomar decisiones con sabiduría",
+        ]
+
+        modules_by_slug = {
+            "fundamentos-de-la-fe": [
+                ("Introducción a la fe", 3, 45),
+                ("La Biblia y la oración", 3, 50),
+                ("Vida en comunidad", 2, 40),
+            ],
+            "liderazgo-con-proposito": [
+                ("Fundamentos del liderazgo", 4, 55),
+                ("Servir con humildad", 3, 60),
+                ("Decisiones y visión", 3, 50),
+            ],
+            "estudio-de-romanos": [
+                ("Introducción a la carta", 4, 38),
+                ("El problema del pecado (Rom 1–3)", 5, 72),
+                ("Justificación por la fe (Rom 3–5)", 4, 65),
+                ("Vida en el Espíritu (Rom 6–8)", 5, 100),
+                ("Israel y las naciones (Rom 9–11)", 3, 58),
+                ("Fe vivida en comunidad (Rom 12–16)", 5, 87),
+            ],
+        }
+
+        objectives_by_slug = {
+            "fundamentos-de-la-fe": objectives_fund,
+            "liderazgo-con-proposito": objectives_lid,
+            "estudio-de-romanos": objectives_romans,
+        }
+
+        sample = repo_root() / "e2e" / "fixtures" / "sample.mp4"
+
+        def rebuild_modules(course, module_specs):
+            from core.demo_media import ensure_lesson_hls
+
+            course.modules.all().delete()
+            for idx, (title, n_lessons, mins) in enumerate(module_specs):
+                mod = CourseModule.objects.create(course=course, title=title, order=idx)
+                for li in range(n_lessons):
+                    sec = (mins * 60) // max(n_lessons, 1)
+                    lesson_title = f"Lección {li + 1}: {title}"
+                    lesson = Lesson.objects.create(
+                        module=mod,
+                        title=lesson_title,
+                        order=li,
+                        duration_seconds=sec,
+                        is_preview=li == 0 and idx == 0,
+                        video_status="processing",
+                    )
+                    rel = ensure_lesson_hls(lesson.id, sample if sample.exists() else None)
+                    lesson.hls_path = rel
+                    lesson.video_status = "ready"
+                    lesson.save(update_fields=["hls_path", "video_status"])
+            course.recalc_duration()
 
         for cdef in course_defs:
             course, _ = Course.objects.update_or_create(
@@ -126,49 +190,17 @@ class Command(BaseCommand):
                     "rating_avg": cdef["rating"],
                     "rating_count": 100,
                     "cover_placeholder": cdef["cover_placeholder"],
-                    "learning_objectives": objectives_romans
-                    if "Romanos" in cdef["title"]
-                    else ["Objetivo demo 1", "Objetivo demo 2"],
+                    "learning_objectives": objectives_by_slug.get(cdef["slug"], objectives_fund),
                 },
             )
-            if not course.modules.exists():
-                modules = [
-                    ("Introducción a la carta", 4, 38),
-                    ("El problema del pecado (Rom 1–3)", 5, 72),
-                    ("Justificación por la fe (Rom 3–5)", 4, 65),
-                ]
-                if "Romanos" in course.title:
-                    modules = [
-                        ("Introducción a la carta", 4, 38),
-                        ("El problema del pecado (Rom 1–3)", 5, 72),
-                        ("Justificación por la fe (Rom 3–5)", 4, 65),
-                        ("Vida en el Espíritu (Rom 6–8)", 5, 100),
-                        ("Israel y las naciones (Rom 9–11)", 3, 58),
-                        ("Fe vivida en comunidad (Rom 12–16)", 5, 87),
-                    ]
-                for idx, (title, n_lessons, mins) in enumerate(modules):
-                    mod = CourseModule.objects.create(course=course, title=title, order=idx)
-                    for li in range(n_lessons):
-                        sec = (mins * 60) // max(n_lessons, 1)
-                        lesson = Lesson.objects.create(
-                            module=mod,
-                            title=f"Lección {li + 1} — {title[:30]}",
-                            order=li,
-                            duration_seconds=sec,
-                            is_preview=li == 0 and idx == 0,
-                            video_status="processing",
-                        )
-                        from core.demo_media import ensure_lesson_hls
-
-                        sample = repo_root() / "e2e" / "fixtures" / "sample.mp4"
-                        rel = ensure_lesson_hls(lesson.id, sample if sample.exists() else None)
-                        lesson.hls_path = rel
-                        lesson.video_status = "ready"
-                        lesson.save(update_fields=["hls_path", "video_status"])
+            specs = modules_by_slug.get(cdef["slug"])
+            if specs:
+                rebuild_modules(course, specs)
 
         camila = users[settings.GROUP_ALUMNO]
         romans = Course.objects.get(slug="estudio-de-romanos")
-        enrollment, _ = Enrollment.objects.get_or_create(user=camila, course=romans)
+        enrollment, _ = Enrollment.objects.get_or_create(user=camila, course=romans, defaults={"is_active": True})
+        LessonProgress.objects.filter(enrollment=enrollment).delete()
         lessons = Lesson.objects.filter(module__course=romans).order_by("module__order", "order")
         for i, lesson in enumerate(lessons):
             lp, _ = LessonProgress.objects.get_or_create(enrollment=enrollment, lesson=lesson)

@@ -90,12 +90,14 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
             <ThemeToggle />
           </div>
           <UserMenu />
-          <Link
-            href="/mis-cursos"
-            className="hidden items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white sm:inline-flex md:px-6 md:py-3 md:text-[15px]"
-          >
-            Mi aprendizaje
-          </Link>
+          {user && (
+            <Link
+              href="/mis-cursos"
+              className="hidden items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white sm:inline-flex md:px-6 md:py-3 md:text-[15px]"
+            >
+              Mi aprendizaje
+            </Link>
+          )}
         </div>
       </div>
     </header>
@@ -157,6 +159,7 @@ export function Pill({
   onClick?: () => void;
   variant?: 'solid' | 'ghost' | 'light';
   className?: string;
+  disabled?: boolean;
 } & React.ButtonHTMLAttributes<HTMLButtonElement> &
   React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   const base = clsx(
@@ -221,6 +224,17 @@ export function Tag({
   );
 }
 
-export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={clsx('rounded-[18px] bg-[var(--card)] shadow-card', className)}>{children}</div>;
+export function Card({
+  children,
+  className,
+  ...rest
+}: {
+  children: React.ReactNode;
+  className?: string;
+} & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={clsx('rounded-[18px] bg-[var(--card)] shadow-card', className)} {...rest}>
+      {children}
+    </div>
+  );
 }

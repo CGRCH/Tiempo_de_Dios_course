@@ -1,11 +1,13 @@
 'use client';
 
 import { CourseCover } from '@/components/CourseCover';
-import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader, Tag } from '@/components/ui';
-import { API_URL, Course, formatCLP } from '@/lib/api';
+import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader } from '@/components/ui';
+import { firstPreviewLesson } from '@/lib/courseLessons';
+import { API_URL, Course, Lesson, formatCLP } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -15,14 +17,37 @@ export default function CourseDetailPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [openModule, setOpenModule] = useState(0);
   const [checkoutMsg, setCheckoutMsg] = useState('');
+  const [enrolled, setEnrolled] = useState(false);
 
-  useEffect(() => {
+  const loadCourse = () => {
     fetch(`${API_URL}/courses/${slug}/`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => r.json())
       .then(setCourse);
+  };
+
+  useEffect(() => {
+    loadCourse();
   }, [slug, token]);
+
+  useEffect(() => {
+    if (!token) {
+      setEnrolled(false);
+      return;
+    }
+    fetch(`${API_URL}/courses/${slug}/progress/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : { enrolled: false }))
+      .then((d) => setEnrolled(!!d.enrolled));
+  }, [slug, token]);
+
+  const previewLesson = useMemo(() => (course ? firstPreviewLesson(course) : null), [course]);
+
+  const lessonHref = (l: Lesson) => `/aprender/${slug}/leccion/${l.id}`;
+
+  const canOpenLesson = (l: Lesson) => enrolled || l.is_preview;
 
   const enroll = async () => {
     if (!token) {
@@ -42,7 +67,16 @@ export default function CourseDetailPage() {
       },
       body: JSON.stringify({ method: 'webpay' }),
     });
-    if (res.ok) setCheckoutMsg('¡Ya estás inscrito!');
+    if (res.ok) {
+      setEnrolled(true);
+      setCheckoutMsg('¡Ya estás inscrito!');
+    }
+  };
+
+  const goToLearning = () => {
+    const target = previewLesson || course?.modules?.[0]?.lessons?.[0];
+    if (target) router.push(lessonHref(target));
+    else router.push('/mis-cursos');
   };
 
   if (!course) {
@@ -123,15 +157,30 @@ export default function CourseDetailPage() {
                   </button>
                   {openModule === idx && (
                     <div className="mt-3 space-y-2 border-t border-[#f0ede8] pt-3 text-[15px]">
-                      {mod.lessons.map((l) => (
-                        <div key={l.id} className="flex justify-between">
-                          <span>▶ &nbsp;{l.title}</span>
-                          <span className="text-muted">
-                            {Math.floor(l.duration_seconds / 60)}:
-                            {String(l.duration_seconds % 60).padStart(2, '0')}
-                          </span>
-                        </div>
-                      ))}
+                      {mod.lessons.map((l) =>
+                        canOpenLesson(l) ? (
+                          <Link
+                            key={l.id}
+                            href={lessonHref(l)}
+                            data-testid={`syllabus-lesson-${l.id}`}
+                            className="flex justify-between hover:underline"
+                          >
+                            <span>▶ &nbsp;{l.title}</span>
+                            <span className="text-muted">
+                              {Math.floor(l.duration_seconds / 60)}:
+                              {String(l.duration_seconds % 60).padStart(2, '0')}
+                            </span>
+                          </Link>
+                        ) : (
+                          <div key={l.id} className="flex justify-between text-muted">
+                            <span>🔒 &nbsp;{l.title}</span>
+                            <span>
+                              {Math.floor(l.duration_seconds / 60)}:
+                              {String(l.duration_seconds % 60).padStart(2, '0')}
+                            </span>
+                          </div>
+                        ),
+                      )}
                     </div>
                   )}
                 </div>
@@ -153,15 +202,33 @@ export default function CourseDetailPage() {
                   {!free && <span className="text-base font-medium text-muted">CLP</span>}
                 </div>
                 <p className="mb-4 text-sm text-muted">Pago único · acceso de por vida</p>
-                <Pill className="w-full" data-testid="enroll-button" onClick={enroll}>
-                  Inscribirme
-                </Pill>
-                <Pill variant="ghost" className="mt-2 w-full" href={`/aprender/${slug}/leccion/1`}>
-                  Ver lección gratis
-                </Pill>
+                {enrolled ? (
+                  <Pill className="w-full" data-testid="continue-learning" onClick={goToLearning}>
+                    Ir al curso
+                  </Pill>
+                ) : (
+                  <Pill className="w-full" data-testid="enroll-button" onClick={enroll}>
+                    Inscribirme
+                  </Pill>
+                )}
+                {previewLesson && (
+                  <Pill
+                    variant="ghost"
+                    className="mt-2 w-full"
+                    href={lessonHref(previewLesson)}
+                    data-testid="preview-lesson-link"
+                  >
+                    Ver lección gratis
+                  </Pill>
+                )}
                 {checkoutMsg && (
                   <p className="mt-3 text-sm text-[#1d5e2e]" data-testid="enroll-message">
                     {checkoutMsg}
+                  </p>
+                )}
+                {enrolled && !checkoutMsg && (
+                  <p className="mt-3 text-sm text-[#1d5e2e]" data-testid="enrolled-badge">
+                    Ya estás inscrito en este curso.
                   </p>
                 )}
                 <ul className="mt-5 grid gap-2 text-[15px]">

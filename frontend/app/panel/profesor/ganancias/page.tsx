@@ -5,10 +5,11 @@ import { Card } from '@/components/ui';
 import { API_URL, formatCLP } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
-import { profesorNav } from '@/lib/panelNav';
+import { useProfesorNav } from '@/lib/useProfesorNav';
 
 export default function ProfesorGananciasPage() {
   const { token } = useAuth();
+  const nav = useProfesorNav();
   const [visible, setVisible] = useState(false);
   const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<{ course: string; amount_clp: number; sales: number }[]>([]);
@@ -25,7 +26,7 @@ export default function ProfesorGananciasPage() {
   }, [token]);
 
   return (
-    <PanelShell roleTag="Profesor" nav={profesorNav(visible)} active="Ganancias">
+    <PanelShell roleTag="Profesor" nav={nav} active="Ganancias">
       <h1 className="text-3xl font-black uppercase">Ganancias</h1>
       {!visible ? (
         <Card className="mt-6 p-6 text-muted" data-testid="earnings-hidden">

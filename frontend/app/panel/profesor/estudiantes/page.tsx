@@ -4,18 +4,12 @@ import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
 import { API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useProfesorNav } from '@/lib/useProfesorNav';
 import { useEffect, useState } from 'react';
-
-const nav = [
-  { href: '/panel/profesor', label: 'Mis cursos' },
-  { href: '/panel/profesor/estudiantes', label: 'Estudiantes' },
-  { href: '/panel/profesor/preguntas', label: 'Preguntas' },
-  { href: '/panel/profesor/resenas', label: 'Reseñas' },
-  { href: '/panel/profesor/perfil', label: 'Perfil' },
-];
 
 export default function TeacherStudentsPage() {
   const { token } = useAuth();
+  const nav = useProfesorNav();
   const [rows, setRows] = useState<{ student: string; course: string; progress_percent: number }[]>([]);
 
   useEffect(() => {

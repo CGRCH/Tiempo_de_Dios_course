@@ -2,7 +2,8 @@
 
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { Card, Pill, ProgressBar, SectionTitle, SiteFooter, SiteHeader, ThemeToggle } from '@/components/ui';
-import { API_URL, Lesson, formatDuration } from '@/lib/api';
+import { findLessonModule, flatLessons } from '@/lib/courseLessons';
+import { API_URL, Course, Lesson, formatDuration } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -17,6 +18,7 @@ export default function LessonPlayerPage() {
   const { token } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [courseTitle, setCourseTitle] = useState('Curso');
+  const [courseData, setCourseData] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [noteText, setNoteText] = useState('');
@@ -50,9 +52,9 @@ export default function LessonPlayerPage() {
     })
       .then((r) => r.json())
       .then((c) => {
+        setCourseData(c);
         setCourseTitle(c.title);
-        const flat = (c.modules || []).flatMap((m: { lessons: Lesson[] }) => m.lessons);
-        setLessons(flat);
+        setLessons(flatLessons(c));
       });
 
     fetch(`${API_URL}/lessons/${lessonId}/notes/`, {
@@ -73,7 +75,7 @@ export default function LessonPlayerPage() {
     if (res.ok) {
       const data = await res.json();
       setProgressPercent(data.progress_percent ?? progressPercent);
-      setCompletedIds((prev) => [...new Set([...prev, Number(lessonId)])]);
+      setCompletedIds((prev) => Array.from(new Set([...prev, Number(lessonId)])));
       setPlayerMsg('Lección marcada como completada.');
     }
   };
@@ -110,6 +112,10 @@ export default function LessonPlayerPage() {
   const next = idx >= 0 ? lessons[idx + 1] : null;
   const completedCount = completedIds.length;
   const progress = progressPercent;
+  const moduleInfo = courseData ? findLessonModule(courseData, lessonId) : null;
+  const moduleLabel = moduleInfo
+    ? `Módulo ${moduleInfo.moduleIndex}: ${moduleInfo.module.title}`
+    : courseTitle;
 
   return (
     <>
@@ -117,7 +123,7 @@ export default function LessonPlayerPage() {
       {!focus && (
         <div className="hidden border-b border-[#e4e0d8] md:block">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between px-8 py-3 text-sm font-semibold">
-            <span className="text-muted">{courseTitle} · Módulo 3</span>
+            <span className="text-muted">{moduleLabel}</span>
             <div className="flex items-center gap-2">
               Modo enfoque
               <ThemeToggle />
@@ -138,10 +144,7 @@ export default function LessonPlayerPage() {
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Lección {idx + 1} de {lessons.length || 26}
                 </div>
-                <SectionTitle className="!text-[32px]">
-                  {lesson?.title || 'Lección'}{' '}
-                  <span className="serif normal-case">por la fe</span>
-                </SectionTitle>
+                <SectionTitle className="!text-[32px]">{lesson?.title || 'Lección'}</SectionTitle>
               </div>
               {next && (
                 <Pill href={`/aprender/${slug}/leccion/${next.id}`}>Siguiente lección →</Pill>

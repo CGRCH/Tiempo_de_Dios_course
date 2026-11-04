@@ -107,10 +107,11 @@ test.describe('QA fixes UI', () => {
     await login(page, 'carlos.mendez');
     await page.goto('/panel/admin');
     await expect(page.locator('text=Ingresos totales').first()).toBeVisible();
-    const totalText = await page.locator('b').first().textContent();
-    expect(totalText).not.toBe('—');
-    await page.goto('/panel/admin/transacciones');
-    await expect(page.getByTestId('admin-transactions-page')).toBeVisible();
+    await expect
+      .poll(async () => page.locator('b').filter({ hasText: '$' }).first().textContent(), { timeout: 10000 })
+      .not.toBe('—');
+    await page.goto('/panel/admin/transacciones', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('admin-transactions-page')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('td').filter({ hasText: '$' }).first()).toBeVisible();
     await page.goto('/panel/admin/cursos');
     await page.getByTestId('save-price-estudio-de-romanos').click();

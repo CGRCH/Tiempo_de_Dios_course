@@ -12,6 +12,7 @@ export default function AyudaPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const load = () => {
     if (!token) return;
@@ -32,6 +33,7 @@ export default function AyudaPage() {
     });
     setSubject('');
     setBody('');
+    setSuccessMsg('Ticket enviado. Te responderemos pronto.');
     load();
   };
 
@@ -61,6 +63,11 @@ export default function AyudaPage() {
             <button type="submit" data-testid="ticket-submit" className="rounded-full bg-ink px-6 py-2 text-white">
               Enviar ticket
             </button>
+            {successMsg && (
+              <p className="text-sm text-[#1d5e2e]" data-testid="ticket-success">
+                {successMsg}
+              </p>
+            )}
           </form>
         </Card>
         <ul className="mt-6 space-y-2" data-testid="ticket-list">

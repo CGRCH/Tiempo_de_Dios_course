@@ -6,10 +6,11 @@ import { API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { profesorNav } from '@/lib/panelNav';
+import { useProfesorNav } from '@/lib/useProfesorNav';
 
 export default function CrearCursoPage() {
   const { token } = useAuth();
+  const nav = useProfesorNav();
   const router = useRouter();
   const [title, setTitle] = useState('Curso QA E2E');
   const [error, setError] = useState('');
@@ -45,7 +46,7 @@ export default function CrearCursoPage() {
   };
 
   return (
-    <PanelShell roleTag="Profesor" nav={profesorNav(false)} active="Mis cursos">
+    <PanelShell roleTag="Profesor" nav={nav} active="Mis cursos">
       <h1 className="text-3xl font-black uppercase">Crear curso</h1>
       <Card className="mt-6 p-6">
         <form data-testid="create-course-form" onSubmit={create} className="space-y-3">
