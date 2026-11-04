@@ -1,6 +1,7 @@
 from django.urls import path
 
 from courses.views import (
+    AdminCourseListView,
     ApproveCourseView,
     CourseDetailView,
     CourseListView,
@@ -12,6 +13,7 @@ from courses.views import (
     SubmitCourseReviewView,
     TeacherCourseDetailView,
     TeacherCourseListView,
+    TeacherEarningsView,
     TeacherLessonCreateView,
     TeacherModuleCreateView,
     TeacherStudentsView,
@@ -30,11 +32,13 @@ urlpatterns = [
     ),
     path("teacher/students/", TeacherStudentsView.as_view()),
     path("teacher/stats/", TeacherStatsView.as_view(), name="teacher-stats"),
+    path("teacher/earnings/", TeacherEarningsView.as_view(), name="teacher-earnings"),
     path("teacher/courses/<slug:slug>/modules/", TeacherModuleCreateView.as_view()),
     path("teacher/modules/<int:module_id>/lessons/", TeacherLessonCreateView.as_view()),
     path("teacher/lessons/<int:lesson_id>/video/", LessonVideoUploadView.as_view()),
     path("lessons/<int:pk>/", LessonDetailView.as_view(), name="lesson-detail"),
     path("lessons/<int:lesson_id>/notes/", LessonNoteListCreateView.as_view()),
+    path("admin/courses/", AdminCourseListView.as_view()),
     path("admin/courses/pending/", PendingCoursesView.as_view()),
     path("admin/courses/<slug:slug>/approve/", ApproveCourseView.as_view()),
     path("admin/courses/<slug:slug>/price/", SetCoursePriceView.as_view()),

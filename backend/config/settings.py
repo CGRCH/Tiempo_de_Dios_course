@@ -105,13 +105,18 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
+PUBLIC_MEDIA_URL = os.environ.get(
+    "PUBLIC_MEDIA_URL",
+    os.environ.get("NEXT_PUBLIC_MEDIA_URL", "http://localhost:8000"),
+).rstrip("/")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = [
     o.strip()
     for o in os.environ.get(
-        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
     ).split(",")
     if o.strip()
 ]

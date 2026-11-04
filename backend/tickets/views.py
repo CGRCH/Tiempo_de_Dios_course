@@ -4,8 +4,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.permissions import IsAdministracion
+from courses.models import Course, CourseStatus
 from tickets.models import SupportTicket, TicketReply, TicketStatus
 from tickets.serializers import SupportTicketSerializer, TicketReplySerializer
+from users.models import User
 
 
 class MyTicketsView(generics.ListCreateAPIView):
@@ -45,11 +47,13 @@ class SupportStatsView(APIView):
 
     def get(self, request):
         open_count = SupportTicket.objects.exclude(status=TicketStatus.CLOSED).count()
+        pending_courses = Course.objects.filter(status=CourseStatus.REVIEW).count()
+        active_users = User.objects.filter(is_active=True).count()
         return Response(
             {
-                "active_users": 3412,
-                "open_tickets": open_count or 14,
-                "courses_pending": 3,
+                "active_users": active_users,
+                "open_tickets": open_count,
+                "courses_pending": pending_courses,
                 "avg_response_time": "2 h 10 min",
             }
         )

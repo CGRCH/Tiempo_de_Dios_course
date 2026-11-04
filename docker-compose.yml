@@ -34,6 +34,8 @@ services:
     environment:
       POSTGRES_HOST: host.docker.internal
       REDIS_URL: redis://host.docker.internal:6379/0
+      CELERY_TASK_ALWAYS_EAGER: "1"
+      MEDIA_ROOT: /app/media
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -56,6 +58,8 @@ services:
     environment:
       POSTGRES_HOST: host.docker.internal
       REDIS_URL: redis://host.docker.internal:6379/0
+      CELERY_TASK_ALWAYS_EAGER: "1"
+      MEDIA_ROOT: /app/media
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

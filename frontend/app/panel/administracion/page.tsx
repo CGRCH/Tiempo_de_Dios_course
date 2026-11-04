@@ -79,9 +79,9 @@ export default function AdministracionPanelPage() {
       </Headline>
       <div className="mb-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ['Usuarios activos', stats.active_users || '3.412'],
-          ['Tickets abiertos', stats.open_tickets || 14],
-          ['Cursos por aprobar', stats.courses_pending || 3],
+          ['Usuarios activos', stats.active_users ?? 0],
+          ['Tickets abiertos', stats.open_tickets ?? 0],
+          ['Cursos por aprobar', stats.courses_pending ?? 0],
           ['Tiempo medio respuesta', stats.avg_response_time || '2 h 10 min'],
         ].map(([a, b]) => (
           <Card key={a} className="p-5">

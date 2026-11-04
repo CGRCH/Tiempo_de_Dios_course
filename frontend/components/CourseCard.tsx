@@ -1,5 +1,6 @@
 import type { Course } from '@/lib/api';
-import { coverStyle, formatCLP } from '@/lib/api';
+import { CourseCover } from '@/components/CourseCover';
+import { formatCLP } from '@/lib/api';
 import Link from 'next/link';
 import { Card, Tag } from './ui';
 
@@ -8,7 +9,7 @@ export function CourseCard({ course }: { course: Course }) {
   return (
     <Link href={`/cursos/${course.slug}`} className="block">
       <Card className="overflow-hidden transition hover:shadow-md">
-        <div className="h-[110px] md:h-[170px]" style={coverStyle(course.cover_placeholder)} />
+        <CourseCover course={course} className="h-[110px] w-full object-cover md:h-[170px]" />
         <div className="p-3 md:p-[18px]">
           <Tag>{course.duration_label}</Tag>
           <h3 className="mt-2 text-[15px] font-extrabold leading-tight md:text-lg">{course.title}</h3>

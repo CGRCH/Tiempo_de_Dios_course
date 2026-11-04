@@ -1,8 +1,9 @@
 'use client';
 
+import { CourseCover } from '@/components/CourseCover';
 import { CourseCard } from '@/components/CourseCard';
 import { Card, Headline, Pill, ProgressBar, SectionTitle, SiteFooter, SiteHeader } from '@/components/ui';
-import { API_URL, Course, coverStyle } from '@/lib/api';
+import { API_URL, Course } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -30,6 +31,7 @@ const filterSlug: Record<string, string> = {
 export default function HomePage() {
   const { token } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [courseCount, setCourseCount] = useState(0);
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [continueCourse, setContinueCourse] = useState<{
@@ -47,6 +49,7 @@ export default function HomePage() {
     const res = await fetch(`${API_URL}/courses/?${params}`, { cache: 'no-store' });
     const data = await res.json();
     setCourses(data.results || data);
+    setCourseCount(typeof data.count === 'number' ? data.count : (data.results || data).length);
   }, [query, activeFilter]);
 
   useEffect(() => {
@@ -63,7 +66,10 @@ export default function HomePage() {
       .catch(() => setContinueCourse(null));
   }, [token]);
 
-  const countLabel = useMemo(() => `${courses.length || 48} cursos disponibles`, [courses.length]);
+  const countLabel = useMemo(
+    () => `${courseCount} curso${courseCount === 1 ? '' : 's'} disponible${courseCount === 1 ? '' : 's'}`,
+    [courseCount],
+  );
 
   return (
     <>
@@ -102,7 +108,7 @@ export default function HomePage() {
       {continueCourse?.course && (
         <div className="mx-auto max-w-[1280px] px-4 md:px-8">
           <Card className="flex flex-wrap items-center gap-5 p-5">
-            <div className="h-24 w-[150px] flex-none rounded-xl" style={coverStyle(continueCourse.course.cover_placeholder)} />
+            <CourseCover course={continueCourse.course} className="h-24 w-[150px] flex-none rounded-xl object-cover" />
             <div className="min-w-[220px] flex-1">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted">Seguir aprendiendo</div>
               <div className="text-xl font-extrabold">{continueCourse.course.title}</div>
@@ -128,7 +134,9 @@ export default function HomePage() {
             <SectionTitle>
               Todos los <span className="serif normal-case">cursos</span>
             </SectionTitle>
-            <span className="text-muted">{countLabel}</span>
+            <span className="text-muted" data-testid="course-count-label">
+              {countLabel}
+            </span>
           </div>
           <Card className="mb-4 flex items-center gap-3 rounded-full p-1.5 pl-5">
             <span aria-hidden>⌕</span>

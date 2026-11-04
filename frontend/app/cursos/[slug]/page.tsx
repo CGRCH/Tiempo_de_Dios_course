@@ -1,15 +1,17 @@
 'use client';
 
+import { CourseCover } from '@/components/CourseCover';
 import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader, Tag } from '@/components/ui';
-import { API_URL, Course, coverStyle, formatCLP } from '@/lib/api';
+import { API_URL, Course, formatCLP } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function CourseDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { token } = useAuth();
+  const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [openModule, setOpenModule] = useState(0);
   const [checkoutMsg, setCheckoutMsg] = useState('');
@@ -27,6 +29,11 @@ export default function CourseDetailPage() {
       window.location.href = '/ingresar';
       return;
     }
+    const free = course?.is_free || course?.price_clp === 0;
+    if (!free) {
+      router.push(`/checkout/${slug}`);
+      return;
+    }
     const res = await fetch(`${API_URL}/courses/${slug}/enroll/`, {
       method: 'POST',
       headers: {
@@ -35,19 +42,6 @@ export default function CourseDetailPage() {
       },
       body: JSON.stringify({ method: 'webpay' }),
     });
-    if (res.status === 402) {
-      const data = await res.json();
-      const confirm = await fetch(`${API_URL}/checkout/confirm/`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ transaction_id: data.transaction_id }),
-      });
-      if (confirm.ok) setCheckoutMsg('¡Inscripción completada!');
-      return;
-    }
     if (res.ok) setCheckoutMsg('¡Ya estás inscrito!');
   };
 
@@ -147,11 +141,9 @@ export default function CourseDetailPage() {
 
           <aside className="lg:sticky lg:top-24">
             <Card className="overflow-hidden">
-              <div
-                className="flex h-[200px] items-center justify-center"
-                style={coverStyle(course.cover_placeholder)}
-              >
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-2xl">
+              <div className="relative flex h-[200px] items-center justify-center">
+                <CourseCover course={course} className="absolute inset-0 h-full w-full object-cover" />
+                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white text-2xl">
                   ▶
                 </span>
               </div>

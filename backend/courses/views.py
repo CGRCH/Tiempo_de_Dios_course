@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.models import SiteSettings
 from core.permissions import IsAdministracion, IsProfesor, IsSuperAdmin
 from core.roles import is_profesor
 from core.utils import log_action
@@ -78,6 +79,14 @@ class TeacherCourseListView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         course = serializer.save(teacher=self.request.user, status=CourseStatus.DRAFT)
         log_action(self.request.user, "create_course", course.slug)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        out = CourseWriteSerializer(serializer.instance, context=self.get_serializer_context())
+        headers = self.get_success_headers(out.data)
+        return Response(out.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class TeacherCourseDetailView(generics.RetrieveUpdateAPIView):
@@ -262,5 +271,41 @@ class TeacherStatsView(APIView):
                 "published_courses": published,
                 "average_rating": "4,9",
                 "unanswered_questions": pending_questions,
+                "teacher_earnings_visible": SiteSettings.load().teacher_earnings_visible,
             }
         )
+
+
+class TeacherEarningsView(APIView):
+    permission_classes = [IsAuthenticated, IsProfesor]
+
+    def get(self, request):
+        if not SiteSettings.load().teacher_earnings_visible:
+            return Response({"visible": False})
+        from django.db.models import Sum
+
+        from payments.models import Transaction, TransactionStatus
+
+        paid = Transaction.objects.filter(
+            status=TransactionStatus.PAID, course__teacher=request.user
+        )
+        total = paid.aggregate(s=Sum("amount_clp"))["s"] or 0
+        by_course = [
+            {
+                "course": row["course__title"],
+                "amount_clp": row["amount"] or 0,
+                "sales": row["sales"],
+            }
+            for row in paid.values("course__title")
+            .annotate(amount=Sum("amount_clp"), sales=Count("id"))
+            .order_by("-amount")
+        ]
+        return Response({"visible": True, "total_clp": total, "by_course": by_course})
+
+
+class AdminCourseListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    serializer_class = CourseListSerializer
+
+    def get_queryset(self):
+        return Course.objects.all().select_related("teacher", "category")

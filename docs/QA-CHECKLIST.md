@@ -1,26 +1,32 @@
-# Checklist QA E2E — Tiempo de Dios MVP
+# Checklist QA — correcciones manuales (PR #1)
 
-Ejecutar: `bash scripts/e2e-qa.sh` (requiere Docker + ffmpeg).
+## Entorno local (`USE_SQLITE=1`)
 
-| Docker Compose + migrate + seed | pass | `host.docker.internal` para DB/Redis cuando iptables del daemon está deshabilitado |
-| Alumno: registro | pass | `/registro` + Playwright |
-| Alumno: búsqueda/filtros | pass | catálogo |
-| Alumno: inscripción gratis | pass | Fundamentos de la Fe |
-| Alumno: compra simulada | pass | Liderazgo + checkout confirm |
-| Alumno: lección + notas + progreso | pass | reproductor (progreso vía API + nota en UI) |
-| Alumno: completar curso + certificado | pass | `/mis-certificados` |
-| Alumno: ticket soporte | pass | `/ayuda` |
-| Profesor: crear curso + módulos/lecciones | pass | API + UI revisión |
-| Profesor: upload video + Celery HLS | pass | `video_status=ready` (FFmpeg en worker) |
-| Profesor: enviar revisión | pass | submit-review |
-| Profesor: ver estudiantes | pass | `/panel/profesor/estudiantes` |
-| Soporte: sin precios en API/UI | pass | assert API `price_clp=null` |
-| Soporte: aprobar curso | pass | botón Aprobar |
-| Soporte: reemitir certificado | pass | `/panel/administracion/certificados` |
-| Admin: panel ingresos | pass | `/panel/admin` |
-| Admin: export CSV autenticado | pass | fetch JWT |
-| Admin: fijar precio | pass | `/panel/admin/cursos` |
-| Admin: asignar roles | pass | `/panel/admin/roles` |
-| Admin: toggle ingresos profesor | pass | `/panel/admin/configuracion` |
+```bash
+cd backend && USE_SQLITE=1 MEDIA_ROOT=$PWD/media CELERY_TASK_ALWAYS_EAGER=1 python manage.py migrate
+USE_SQLITE=1 MEDIA_ROOT=$PWD/media CELERY_TASK_ALWAYS_EAGER=1 python manage.py seed_demo
+USE_SQLITE=1 MEDIA_ROOT=$PWD/media CELERY_TASK_ALWAYS_EAGER=1 python manage.py runserver 0.0.0.0:8000
+# otra terminal:
+cd frontend && NEXT_PUBLIC_API_URL=http://localhost:8000/api npm run dev
+cd e2e && E2E_BASE_URL=http://localhost:3000 npx playwright test qa-fixes.spec.ts
+```
 
-Última corrida: `cd e2e && npx playwright test` — **4/4 passed** (Docker Compose activo).
+## Docker Compose
+
+```bash
+bash scripts/e2e-qa.sh
+```
+
+Asegurar `CELERY_TASK_ALWAYS_EAGER=1` en `.env` para transcodificación síncrona en QA.
+
+| # | Área | Verificación | E2E UI |
+|---|------|--------------|--------|
+| 1 | Logout / avatar | Menú en avatar, iniciales reales, «Ingresar» sin sesión | `qa-fixes` test 1 + screenshots `01-*` |
+| 2 | Portadas y conteo | `<img>` con `/media/covers/`, conteo API en home | test 2 + `02-catalog-covers.png` |
+| 3 | Checkout pagado | `/checkout/[slug]` antes de confirmar; feedback gratis | test 3 + `03-checkout.png` |
+| 4 | Reproductor | HLS vía rewrite `/media`, progreso y feedback | test 4 + `04-lesson-progress.png` |
+| 5 | Profesor | Crear curso devuelve `slug`, módulo/lección/revisión | test 5 + `05-teacher-course.png` |
+| 6 | Administración | `/usuarios`, `/tickets`, `/aprobacion`, stats reales, nav Soporte | test 6 + `06-soporte.png` |
+| 7 | Super admin | Ingresos desde transacciones, `/transacciones`, editor precios | test 7 + `07-admin-prices.png` |
+
+Capturas en `docs/screenshots/qa-fix/`.

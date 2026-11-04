@@ -1,4 +1,5 @@
 from django.db.models import Sum
+from django.utils import timezone
 from rest_framework import serializers
 
 from core.roles import can_view_money
@@ -28,7 +29,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     def get_amount_clp(self, obj):
         request = self.context.get("request")
         user = request.user if request else None
-        if not can_view_money(user):
+        if user and not can_view_money(user):
             return None
         return obj.amount_clp
 
@@ -36,40 +37,66 @@ class TransactionSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         request = self.context.get("request")
         user = request.user if request else None
-        if not can_view_money(user):
+        if user and not can_view_money(user):
             data.pop("amount_clp", None)
         return data
 
 
 class RevenueDashboardSerializer:
     @staticmethod
-    def build() -> dict:
+    def build(request=None) -> dict:
         paid = Transaction.objects.filter(status=TransactionStatus.PAID)
         total = paid.aggregate(s=Sum("amount_clp"))["s"] or 0
-        monthly = [
-            {"month": m, "amount_millions": v}
-            for m, v in zip(
-                ["Dic", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov"],
-                [1.2, 1.6, 1.4, 2.1, 2.6, 2.3, 3.0, 3.4, 2.9, 3.8, 4.2, 4.7],
+
+        now = timezone.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        month_qs = paid.filter(created_at__gte=month_start)
+        month_revenue = month_qs.aggregate(s=Sum("amount_clp"))["s"] or 0
+        month_sales = month_qs.count()
+        average_ticket = int(month_revenue / month_sales) if month_sales else 0
+
+        month_names = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+        monthly_chart = []
+        cursor = month_start
+        for _ in range(12):
+            prev_end = cursor
+            cursor = (cursor - timezone.timedelta(days=1)).replace(day=1)
+            amount = (
+                paid.filter(created_at__gte=cursor, created_at__lt=prev_end).aggregate(
+                    s=Sum("amount_clp")
+                )["s"]
+                or 0
             )
+            monthly_chart.insert(
+                0,
+                {
+                    "month": month_names[cursor.month - 1],
+                    "amount_millions": round(amount / 1_000_000, 2),
+                },
+            )
+
+        revenue_by_course = [
+            {
+                "course": row["course__title"],
+                "amount_clp": row["amount"] or 0,
+            }
+            for row in paid.values("course__title")
+            .annotate(amount=Sum("amount_clp"))
+            .order_by("-amount")
         ]
-        by_course = []
-        for course_title, amount in [
-            ("Estudio de Romanos", 12470010),
-            ("Liderazgo con Propósito", 8307230),
-            ("Panorama del AT", 6892030),
-            ("Adoración y Música", 3198720),
-        ]:
-            by_course.append({"course": course_title, "amount_clp": amount})
+
         recent = TransactionSerializer(
-            paid[:5], many=True, context={"request": None}
+            paid.select_related("user", "course").order_by("-created_at")[:10],
+            many=True,
+            context={"request": request},
         ).data
+
         return {
-            "total_revenue_clp": total or 33420180,
-            "month_revenue_clp": 4712600,
-            "month_sales": 186,
-            "average_ticket_clp": 25336,
-            "monthly_chart": monthly,
-            "revenue_by_course": by_course,
+            "total_revenue_clp": total,
+            "month_revenue_clp": month_revenue,
+            "month_sales": month_sales,
+            "average_ticket_clp": average_ticket,
+            "monthly_chart": monthly_chart,
+            "revenue_by_course": revenue_by_course,
             "recent_transactions": recent,
         }

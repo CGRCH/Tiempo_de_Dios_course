@@ -1,23 +1,17 @@
 'use client';
 
+import { profesorNav } from '@/lib/panelNav';
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Headline, Pill, Tag } from '@/components/ui';
 import { API_URL, Course } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
-const nav = [
-  { href: '/panel/profesor', label: 'Mis cursos' },
-  { href: '/panel/profesor/estudiantes', label: 'Estudiantes' },
-  { href: '/panel/profesor/preguntas', label: 'Preguntas' },
-  { href: '/panel/profesor/resenas', label: 'Reseñas' },
-  { href: '/panel/profesor/perfil', label: 'Perfil' },
-];
-
 export default function ProfesorPanelPage() {
   const { token, user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [stats, setStats] = useState<Record<string, string | number>>({});
+  const [stats, setStats] = useState<Record<string, string | number | boolean>>({});
+  const nav = profesorNav(!!stats.teacher_earnings_visible);
 
   useEffect(() => {
     if (!token) return;
@@ -86,7 +80,11 @@ export default function ProfesorPanelPage() {
                 <td className="px-4 py-3.5">{c.student_count}</td>
                 <td className="px-4 py-3.5">{c.rating_display}</td>
                 <td className="px-4 py-3.5 text-muted">reciente</td>
-                <td className="px-4 py-3.5 font-semibold">Editar →</td>
+                <td className="px-4 py-3.5 font-semibold">
+                  <a href={`/panel/profesor/cursos/${c.slug}`} className="underline">
+                    Editar →
+                  </a>
+                </td>
               </tr>
             ))}
           </tbody>

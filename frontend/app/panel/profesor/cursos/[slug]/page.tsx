@@ -7,21 +7,23 @@ import { useAuth } from '@/lib/auth';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-const nav = [
-  { href: '/panel/profesor', label: 'Mis cursos' },
-  { href: '/panel/profesor/estudiantes', label: 'Estudiantes' },
-  { href: '/panel/profesor/preguntas', label: 'Preguntas' },
-  { href: '/panel/profesor/resenas', label: 'Reseñas' },
-  { href: '/panel/profesor/perfil', label: 'Perfil' },
-];
-
-export default function TeacherCourseEditPage() {
+import { profesorNav } from '@/lib/panelNav';
   const { slug } = useParams() as { slug: string };
   const { token } = useAuth();
   const [moduleId, setModuleId] = useState<number | null>(null);
   const [lessonId, setLessonId] = useState<number | null>(null);
   const [videoStatus, setVideoStatus] = useState('');
   const [msg, setMsg] = useState('');
+  const [showEarnings, setShowEarnings] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/teacher/stats/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setShowEarnings(!!d.teacher_earnings_visible));
+  }, [token]);
+
+  const nav = profesorNav(showEarnings);
 
   const createModule = async () => {
     if (!token) return;

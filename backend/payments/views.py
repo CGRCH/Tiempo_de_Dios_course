@@ -23,7 +23,7 @@ class RevenueDashboardView(APIView):
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
     def get(self, request):
-        data = RevenueDashboardSerializer.build()
+        data = RevenueDashboardSerializer.build(request=request)
         return Response(data)
 
 

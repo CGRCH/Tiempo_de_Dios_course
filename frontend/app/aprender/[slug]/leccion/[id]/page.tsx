@@ -22,6 +22,20 @@ export default function LessonPlayerPage() {
   const [noteText, setNoteText] = useState('');
   const [currentTime, setCurrentTime] = useState(0);
   const [focus, setFocus] = useState(false);
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [completedIds, setCompletedIds] = useState<number[]>([]);
+  const [playerMsg, setPlayerMsg] = useState('');
+
+  const loadProgress = async () => {
+    if (!token) return;
+    const r = await fetch(`${API_URL}/courses/${slug}/progress/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    setProgressPercent(d.progress_percent || 0);
+    setCompletedIds(d.completed_lesson_ids || []);
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -46,15 +60,22 @@ export default function LessonPlayerPage() {
     })
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setNotes(Array.isArray(d) ? d : d.results || []));
+    loadProgress();
   }, [lessonId, slug, token]);
 
   const markComplete = async () => {
     if (!token) return;
-    await fetch(`${API_URL}/lessons/${lessonId}/progress/`, {
+    const res = await fetch(`${API_URL}/lessons/${lessonId}/progress/`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ completed: true, last_position_seconds: currentTime }),
     });
+    if (res.ok) {
+      const data = await res.json();
+      setProgressPercent(data.progress_percent ?? progressPercent);
+      setCompletedIds((prev) => [...new Set([...prev, Number(lessonId)])]);
+      setPlayerMsg('Lección marcada como completada.');
+    }
   };
 
   const completeAll = async () => {
@@ -66,6 +87,8 @@ export default function LessonPlayerPage() {
         body: JSON.stringify({ completed: true, last_position_seconds: l.duration_seconds }),
       });
     }
+    await loadProgress();
+    setPlayerMsg('¡Curso completado! Revisa Mis certificados.');
   };
 
   const addNote = async () => {
@@ -85,8 +108,8 @@ export default function LessonPlayerPage() {
 
   const idx = lessons.findIndex((l) => String(l.id) === lessonId);
   const next = idx >= 0 ? lessons[idx + 1] : null;
-  const completedCount = Math.max(0, idx);
-  const progress = lessons.length ? Math.round((completedCount / lessons.length) * 100) : 0;
+  const completedCount = completedIds.length;
+  const progress = progressPercent;
 
   return (
     <>
@@ -161,6 +184,11 @@ export default function LessonPlayerPage() {
                   Completar curso
                 </button>
               </div>
+              {playerMsg && (
+                <p className="mb-3 text-sm text-[#1d5e2e]" data-testid="player-feedback">
+                  {playerMsg}
+                </p>
+              )}
               {notes.map((n) => (
                 <div key={n.id} className="flex gap-3 border-t border-[#f0ede8] py-3">
                   <span className="rounded-full bg-ink px-2 py-1 text-xs font-semibold text-white">
@@ -181,14 +209,14 @@ export default function LessonPlayerPage() {
               </span>
               <span>{progress}%</span>
             </div>
-            <ProgressBar value={progress} />
+            <ProgressBar value={progress} data-testid="lesson-progress-bar" />
             <div className="mx-4 mt-4 text-xs font-bold uppercase tracking-wider text-muted">
               Módulo 1–3
             </div>
             <div className="mt-2 space-y-1">
               {lessons.map((l, i) => {
                 const active = String(l.id) === lessonId;
-                const done = i < idx;
+                const done = completedIds.includes(l.id);
                 return (
                   <Link
                     key={l.id}

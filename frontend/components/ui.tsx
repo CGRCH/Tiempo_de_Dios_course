@@ -1,5 +1,6 @@
 'use client';
 
+import { UserMenu } from '@/components/UserMenu';
 import clsx from 'clsx';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -12,6 +13,14 @@ const links = [
   { href: '/profesores', label: 'Profesores' },
   { href: '/comunidad', label: 'Comunidad' },
 ];
+
+function panelLinkForRole(role: string | undefined): { href: string; label: string } | null {
+  if (!role) return null;
+  if (role === 'Super admin') return { href: '/panel/admin', label: 'Admin' };
+  if (role === 'Administración (soporte)') return { href: '/panel/administracion', label: 'Soporte' };
+  if (role === 'Profesor') return { href: '/panel/profesor', label: 'Profesor' };
+  return null;
+}
 
 export function ThemeToggle() {
   const [dark, setDark] = useState(false);
@@ -43,6 +52,7 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
   const pathname = usePathname();
   const { user } = useAuth();
   const resolved = links.find((l) => pathname === l.href || pathname.startsWith(l.href + '/'))?.label || active;
+  const panel = panelLinkForRole(user?.role);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#e4e0d8] bg-cream dark:bg-[var(--bg)]">
@@ -64,20 +74,25 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
                 {l.label}
               </Link>
             ))}
+            {panel && (
+              <Link
+                href={panel.href}
+                data-testid="header-panel-link"
+                className={clsx(pathname.startsWith(panel.href) && 'border-b-2 border-ink pb-0.5')}
+              >
+                {panel.label}
+              </Link>
+            )}
           </nav>
         )}
         <div className="flex items-center gap-3">
           <div className="hidden md:block">
             <ThemeToggle />
           </div>
-          {user && (
-            <span className="hidden h-[34px] w-[34px] items-center justify-center rounded-full bg-[#d9d3c7] text-xs font-bold md:inline-flex">
-              {user.initials}
-            </span>
-          )}
+          <UserMenu />
           <Link
             href="/mis-cursos"
-            className="inline-flex items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white md:px-6 md:py-3 md:text-[15px]"
+            className="hidden items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white sm:inline-flex md:px-6 md:py-3 md:text-[15px]"
           >
             Mi aprendizaje
           </Link>

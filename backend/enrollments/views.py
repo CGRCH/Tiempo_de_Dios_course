@@ -12,6 +12,32 @@ from enrollments.serializers import EnrollmentSerializer, LessonProgressSerializ
 from payments.services import CheckoutService
 
 
+class CourseProgressView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        course = Course.objects.get(slug=slug)
+        enrollment = Enrollment.objects.filter(
+            user=request.user, course=course, is_active=True
+        ).first()
+        if not enrollment:
+            return Response({"enrolled": False})
+        completed_ids = list(
+            LessonProgress.objects.filter(enrollment=enrollment, completed=True).values_list(
+                "lesson_id", flat=True
+            )
+        )
+        total = Lesson.objects.filter(module__course=course).count()
+        return Response(
+            {
+                "enrolled": True,
+                "progress_percent": enrollment.progress_percent,
+                "completed_lesson_ids": completed_ids,
+                "total_lessons": total,
+            }
+        )
+
+
 class MyEnrollmentsView(generics.ListAPIView):
     serializer_class = EnrollmentSerializer
     permission_classes = [IsAuthenticated]
@@ -97,7 +123,18 @@ class LessonProgressUpdateView(APIView):
             progress.completed = True
         progress.save()
         _maybe_complete_course(enrollment)
-        return Response(LessonProgressSerializer(progress).data)
+        enrollment.refresh_from_db()
+        total = Lesson.objects.filter(module__course=lesson.course).count()
+        done = LessonProgress.objects.filter(enrollment=enrollment, completed=True).count()
+        return Response(
+            {
+                **LessonProgressSerializer(progress).data,
+                "progress_percent": enrollment.progress_percent,
+                "completed_count": done,
+                "total_lessons": total,
+                "course_completed": enrollment.completed_at is not None,
+            }
+        )
 
 
 def _bootstrap_progress(enrollment: Enrollment):

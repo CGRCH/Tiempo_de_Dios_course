@@ -15,7 +15,8 @@ def sign_media_path(relative_path: str, user_id: int) -> str:
         hashlib.sha256,
     ).hexdigest()
     qs = urlencode({"uid": user_id, "exp": expires, "sig": sig})
-    return f"{settings.MEDIA_URL}{relative_path}?{qs}"
+    base = settings.PUBLIC_MEDIA_URL.rstrip("/") + settings.MEDIA_URL
+    return f"{base}{relative_path}?{qs}"
 
 
 def verify_media_signature(relative_path: str, user_id: int, expires: int, sig: str) -> bool:

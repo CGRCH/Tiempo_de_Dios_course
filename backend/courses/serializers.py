@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from core.roles import can_view_course_price, can_view_money
@@ -64,6 +65,7 @@ class CourseListSerializer(serializers.ModelSerializer):
     is_free = serializers.BooleanField(read_only=True)
     duration_label = serializers.SerializerMethodField()
     rating_display = serializers.SerializerMethodField()
+    cover_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -74,6 +76,7 @@ class CourseListSerializer(serializers.ModelSerializer):
             "teacher_name",
             "category_name",
             "cover",
+            "cover_url",
             "cover_placeholder",
             "duration_minutes",
             "duration_label",
@@ -84,6 +87,12 @@ class CourseListSerializer(serializers.ModelSerializer):
             "student_count",
             "status",
         )
+
+    def get_cover_url(self, obj):
+        if obj.cover:
+            return obj.cover.url
+        key = obj.cover_placeholder or "c1"
+        return f"{settings.MEDIA_URL}covers/{key}.jpg"
 
     def get_teacher_name(self, obj):
         return obj.teacher.get_full_name() or obj.teacher.username

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { resolveMediaUrl } from '@/lib/api';
 import Hls from 'hls.js';
+import { useEffect, useRef } from 'react';
 
 export function VideoPlayer({
   src,
@@ -16,9 +17,10 @@ export function VideoPlayer({
 
   useEffect(() => {
     const video = ref.current;
-    if (!video || !src) return;
+    const resolved = resolveMediaUrl(src);
+    if (!video || !resolved) return;
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = src;
+      video.src = resolved;
       return;
     }
     if (Hls.isSupported()) {
@@ -26,7 +28,7 @@ export function VideoPlayer({
       hls.on(Hls.Events.ERROR, () => {
         /* evitar crash si el manifiesto HLS demo no está disponible */
       });
-      hls.loadSource(src);
+      hls.loadSource(resolved);
       hls.attachMedia(video);
       return () => hls.destroy();
     }
@@ -42,6 +44,7 @@ export function VideoPlayer({
         className="h-full w-full object-cover"
         controls
         playsInline
+        data-testid="lesson-video"
         onTimeUpdate={(e) => onTimeUpdate?.(Math.floor(e.currentTarget.currentTime))}
       />
       {!src && (

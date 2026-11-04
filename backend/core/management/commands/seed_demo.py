@@ -17,8 +17,11 @@ class Command(BaseCommand):
         from tickets.models import SupportTicket, TicketPriority
         from users.models import User
 
+        from core.demo_media import ensure_cover_jpegs, repo_root
+
         ensure_role_groups()
         SiteSettings.load()
+        ensure_cover_jpegs(["c1", "c2", "c3", "c4"])
 
         categories = [
             ("fundamentos", "Fundamentos", 1),
@@ -153,9 +156,15 @@ class Command(BaseCommand):
                             order=li,
                             duration_seconds=sec,
                             is_preview=li == 0 and idx == 0,
-                            video_status="ready",
-                            hls_path=f"hls/lesson_{course.id}_{idx}_{li}/index.m3u8",
+                            video_status="processing",
                         )
+                        from core.demo_media import ensure_lesson_hls
+
+                        sample = repo_root() / "e2e" / "fixtures" / "sample.mp4"
+                        rel = ensure_lesson_hls(lesson.id, sample if sample.exists() else None)
+                        lesson.hls_path = rel
+                        lesson.video_status = "ready"
+                        lesson.save(update_fields=["hls_path", "video_status"])
 
         camila = users[settings.GROUP_ALUMNO]
         romans = Course.objects.get(slug="estudio-de-romanos")
@@ -173,6 +182,18 @@ class Command(BaseCommand):
                 "user": camila,
                 "course": romans,
                 "amount_clp": 24990,
+                "method": "webpay",
+                "status": TransactionStatus.PAID,
+            },
+        )
+
+        liderazgo = Course.objects.get(slug="liderazgo-con-proposito")
+        Transaction.objects.get_or_create(
+            external_id="TX-10483",
+            defaults={
+                "user": camila,
+                "course": liderazgo,
+                "amount_clp": 29990,
                 "method": "webpay",
                 "status": TransactionStatus.PAID,
             },
@@ -212,6 +233,16 @@ class Command(BaseCommand):
                 "cover_placeholder": "c4",
             },
         )
+
+        from core.demo_media import ensure_lesson_hls
+
+        sample_mp4 = repo_root() / "e2e" / "fixtures" / "sample.mp4"
+        for lesson in Lesson.objects.all():
+            rel = ensure_lesson_hls(lesson.id, sample_mp4 if sample_mp4.exists() else None)
+            if lesson.hls_path != rel or lesson.video_status != "ready":
+                lesson.hls_path = rel
+                lesson.video_status = "ready"
+                lesson.save(update_fields=["hls_path", "video_status"])
 
         self.stdout.write(self.style.SUCCESS("Datos demo cargados."))
         self.stdout.write(f"Contraseña demo para todos: {password}")
