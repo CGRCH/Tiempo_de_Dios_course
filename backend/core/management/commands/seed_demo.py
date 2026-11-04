@@ -1,0 +1,217 @@
+from django.core.management.base import BaseCommand
+
+from core.utils import ensure_role_groups
+
+
+class Command(BaseCommand):
+    help = "Carga datos de demostración (usuarios, cursos, transacciones simuladas)."
+
+    def handle(self, *args, **options):
+        from django.conf import settings
+        from django.contrib.auth.models import Group
+
+        from core.models import Category, SiteSettings
+        from courses.models import Course, CourseModule, CourseStatus, Lesson
+        from enrollments.models import Enrollment, LessonProgress
+        from payments.models import Transaction, TransactionStatus
+        from tickets.models import SupportTicket, TicketPriority
+        from users.models import User
+
+        ensure_role_groups()
+        SiteSettings.load()
+
+        categories = [
+            ("fundamentos", "Fundamentos", 1),
+            ("estudios-biblicos", "Estudios bíblicos", 2),
+            ("liderazgo", "Liderazgo", 3),
+            ("familia", "Familia", 4),
+            ("oracion", "Oración", 5),
+            ("musica", "Música", 6),
+        ]
+        for slug, name, order in categories:
+            Category.objects.get_or_create(slug=slug, defaults={"name": name, "order": order})
+
+        demo_users = [
+            ("alumno", "camila.m", "Camila", "Muñoz", settings.GROUP_ALUMNO, False),
+            ("profesor", "f.rojas", "Felipe", "Rojas", settings.GROUP_PROFESOR, False),
+            ("soporte", "marta.ibanez", "Marta", "Ibáñez", settings.GROUP_ADMINISTRACION, False),
+            ("admin", "carlos.mendez", "Carlos", "Méndez", settings.GROUP_ADMIN, True),
+        ]
+        password = "Demo2026!"
+        users = {}
+        for _key, username, first, last, group_name, superuser in demo_users:
+            user, created = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    "email": f"{username}@demo.local",
+                    "first_name": first,
+                    "last_name": last,
+                },
+            )
+            if created:
+                user.set_password(password)
+            user.is_superuser = superuser
+            user.is_staff = superuser or group_name == settings.GROUP_ADMINISTRACION
+            user.save()
+            g = Group.objects.get(name=group_name)
+            user.groups.set([g])
+            users[group_name] = user
+
+        felipe = users[settings.GROUP_PROFESOR]
+        cat_estudios = Category.objects.get(slug="estudios-biblicos")
+        cat_fund = Category.objects.get(slug="fundamentos")
+        cat_lid = Category.objects.get(slug="liderazgo")
+
+        course_defs = [
+            {
+                "title": "Fundamentos de la Fe",
+                "slug": "fundamentos-de-la-fe",
+                "teacher": felipe,
+                "category": cat_fund,
+                "price": 0,
+                "cover_placeholder": "c1",
+                "duration": 260,
+                "students": 980,
+                "rating": 4.9,
+            },
+            {
+                "title": "Liderazgo con Propósito",
+                "slug": "liderazgo-con-proposito",
+                "teacher": felipe,
+                "category": cat_lid,
+                "price": 29990,
+                "cover_placeholder": "c2",
+                "duration": 365,
+                "students": 540,
+                "rating": 4.8,
+            },
+            {
+                "title": "Estudio de Romanos",
+                "slug": "estudio-de-romanos",
+                "teacher": felipe,
+                "category": cat_estudios,
+                "price": 24990,
+                "cover_placeholder": "c3",
+                "duration": 520,
+                "students": 1284,
+                "rating": 4.9,
+            },
+        ]
+
+        objectives_romans = [
+            "Contexto histórico y propósito de la carta",
+            "El significado de la justificación por la fe",
+            "Cómo vivir guiado por el Espíritu",
+            "El plan de Dios para Israel y las naciones",
+            "Aplicar Romanos 12 a tu comunidad",
+            "Herramientas para estudiar la Biblia por tu cuenta",
+        ]
+
+        for cdef in course_defs:
+            course, _ = Course.objects.update_or_create(
+                slug=cdef["slug"],
+                defaults={
+                    "title": cdef["title"],
+                    "teacher": cdef["teacher"],
+                    "category": cdef["category"],
+                    "description": f"Curso demo: {cdef['title']}.",
+                    "status": CourseStatus.PUBLISHED,
+                    "price_clp": cdef["price"],
+                    "proposed_price_clp": cdef["price"],
+                    "duration_minutes": cdef["duration"],
+                    "student_count": cdef["students"],
+                    "rating_avg": cdef["rating"],
+                    "rating_count": 100,
+                    "cover_placeholder": cdef["cover_placeholder"],
+                    "learning_objectives": objectives_romans
+                    if "Romanos" in cdef["title"]
+                    else ["Objetivo demo 1", "Objetivo demo 2"],
+                },
+            )
+            if not course.modules.exists():
+                modules = [
+                    ("Introducción a la carta", 4, 38),
+                    ("El problema del pecado (Rom 1–3)", 5, 72),
+                    ("Justificación por la fe (Rom 3–5)", 4, 65),
+                ]
+                if "Romanos" in course.title:
+                    modules = [
+                        ("Introducción a la carta", 4, 38),
+                        ("El problema del pecado (Rom 1–3)", 5, 72),
+                        ("Justificación por la fe (Rom 3–5)", 4, 65),
+                        ("Vida en el Espíritu (Rom 6–8)", 5, 100),
+                        ("Israel y las naciones (Rom 9–11)", 3, 58),
+                        ("Fe vivida en comunidad (Rom 12–16)", 5, 87),
+                    ]
+                for idx, (title, n_lessons, mins) in enumerate(modules):
+                    mod = CourseModule.objects.create(course=course, title=title, order=idx)
+                    for li in range(n_lessons):
+                        sec = (mins * 60) // max(n_lessons, 1)
+                        lesson = Lesson.objects.create(
+                            module=mod,
+                            title=f"Lección {li + 1} — {title[:30]}",
+                            order=li,
+                            duration_seconds=sec,
+                            is_preview=li == 0 and idx == 0,
+                            video_status="ready",
+                            hls_path=f"hls/lesson_{course.id}_{idx}_{li}/index.m3u8",
+                        )
+
+        camila = users[settings.GROUP_ALUMNO]
+        romans = Course.objects.get(slug="estudio-de-romanos")
+        enrollment, _ = Enrollment.objects.get_or_create(user=camila, course=romans)
+        lessons = Lesson.objects.filter(module__course=romans).order_by("module__order", "order")
+        for i, lesson in enumerate(lessons):
+            lp, _ = LessonProgress.objects.get_or_create(enrollment=enrollment, lesson=lesson)
+            lp.completed = i < 6
+            lp.last_position_seconds = 472 if i == 6 else 0
+            lp.save()
+
+        Transaction.objects.get_or_create(
+            external_id="TX-10482",
+            defaults={
+                "user": camila,
+                "course": romans,
+                "amount_clp": 24990,
+                "method": "webpay",
+                "status": TransactionStatus.PAID,
+            },
+        )
+
+        SupportTicket.objects.get_or_create(
+            user=camila,
+            subject="No puedo descargar mi certificado",
+            defaults={
+                "body": "Demo ticket",
+                "priority": TicketPriority.HIGH,
+            },
+        )
+
+        # Extra cursos demo para panel profesor
+        Course.objects.update_or_create(
+            slug="cartas-de-pablo-ii",
+            defaults={
+                "title": "Cartas de Pablo II",
+                "teacher": felipe,
+                "category": cat_estudios,
+                "description": "En revisión.",
+                "status": CourseStatus.REVIEW,
+                "price_clp": 0,
+                "cover_placeholder": "c1",
+            },
+        )
+        Course.objects.update_or_create(
+            slug="hebreos-mejor-pacto",
+            defaults={
+                "title": "Hebreos: Mejor Pacto",
+                "teacher": felipe,
+                "category": cat_estudios,
+                "description": "Borrador.",
+                "status": CourseStatus.DRAFT,
+                "price_clp": 0,
+                "cover_placeholder": "c4",
+            },
+        )
+
+        self.stdout.write(self.style.SUCCESS("Datos demo cargados."))
+        self.stdout.write(f"Contraseña demo para todos: {password}")
