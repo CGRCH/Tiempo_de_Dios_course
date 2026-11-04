@@ -17,11 +17,17 @@ const nav = [
 export default function AdminConfigPage() {
   const { token } = useAuth();
   const [visible, setVisible] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/settings/`).then((r) => r.json()).then((s) => setVisible(s.teacher_earnings_visible));
+    fetch(`${API_URL}/settings/`)
+      .then((r) => r.json())
+      .then((s) => {
+        setVisible(!!s.teacher_earnings_visible);
+        setLoaded(true);
+      });
   }, [token]);
 
   const save = async () => {
@@ -46,7 +52,13 @@ export default function AdminConfigPage() {
           />
           Mostrar ingresos a profesores
         </label>
-        <button data-testid="save-settings" type="button" onClick={save} className="mt-4 rounded-full bg-ink px-4 py-2 text-white">
+        <button
+          data-testid="save-settings"
+          type="button"
+          onClick={save}
+          disabled={!loaded}
+          className="mt-4 rounded-full bg-ink px-4 py-2 text-white disabled:opacity-50"
+        >
           Guardar
         </button>
         {savedMsg && (

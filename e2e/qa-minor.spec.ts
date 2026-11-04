@@ -92,23 +92,36 @@ test.describe('QA minor fixes', () => {
     expect(errors.filter((e) => !/favicon/i.test(e))).toEqual([]);
   });
 
-  test('13 Ganancias redirects when earnings hidden', async ({ page }) => {
+  test('13 Ganancias redirects when earnings hidden', async ({ page, request }) => {
+    const api = process.env.E2E_API_URL || 'http://localhost:8000/api';
     await login(page, 'carlos.mendez');
     await page.goto('/panel/admin/configuracion');
-    await page.getByTestId('toggle-teacher-earnings').uncheck();
+    const toggle = page.getByTestId('toggle-teacher-earnings');
+    await expect(page.getByTestId('save-settings')).toBeEnabled();
+    if (await toggle.isChecked()) {
+      await toggle.click();
+    }
     await page.getByTestId('save-settings').click();
     await expect(page.getByTestId('settings-saved')).toBeVisible();
+    await expect
+      .poll(async () => {
+        const r = await request.get(`${api}/settings/`);
+        return (await r.json()).teacher_earnings_visible;
+      })
+      .toBe(false);
 
     await logout(page);
     await login(page, 'f.rojas');
     await page.goto('/panel/profesor/ganancias');
-    await page.waitForURL('**/panel/profesor', { timeout: 15000 });
-    expect(page.url()).not.toContain('/ganancias');
+    await expect(page).toHaveURL(/\/panel\/profesor\/?$/, { timeout: 15000 });
 
     await logout(page);
     await login(page, 'carlos.mendez');
     await page.goto('/panel/admin/configuracion');
-    await page.getByTestId('toggle-teacher-earnings').check();
+    const toggleOn = page.getByTestId('toggle-teacher-earnings');
+    if (!(await toggleOn.isChecked())) {
+      await toggleOn.click();
+    }
     await page.getByTestId('save-settings').click();
   });
 });

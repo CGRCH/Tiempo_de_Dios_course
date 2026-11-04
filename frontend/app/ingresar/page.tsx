@@ -1,5 +1,6 @@
 'use client';
 
+import { AuthBrandMark } from '@/components/BrandLogo';
 import { Card, SiteFooter, SiteHeader } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
@@ -26,7 +27,8 @@ export default function LoginPage() {
     <>
       <SiteHeader />
       <section className="mx-auto max-w-md px-4 py-16">
-        <h1 className="text-3xl font-black uppercase">Ingresar</h1>
+        <AuthBrandMark />
+        <h1 className="text-center text-3xl font-black uppercase">Ingresar</h1>
         <Card className="mt-8 p-8">
           <form data-testid="login-form" onSubmit={submit} className="space-y-4">
             <label className="block text-sm font-medium">

@@ -1,5 +1,6 @@
 'use client';
 
+import { AuthBrandMark } from '@/components/BrandLogo';
 import { Card, Pill, SiteFooter, SiteHeader } from '@/components/ui';
 import { registerUser } from '@/lib/auth';
 import Link from 'next/link';
@@ -31,7 +32,8 @@ export default function RegisterPage() {
     <>
       <SiteHeader />
       <section className="mx-auto max-w-md px-4 py-16">
-        <h1 className="text-3xl font-black uppercase">Crear cuenta</h1>
+        <AuthBrandMark />
+        <h1 className="text-center text-3xl font-black uppercase">Crear cuenta</h1>
         <Card className="mt-8 p-8">
           <form data-testid="register-form" onSubmit={submit} className="space-y-3">
             {(['username', 'email', 'password', 'first_name', 'last_name'] as const).map((k) => (

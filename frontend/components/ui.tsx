@@ -1,6 +1,7 @@
 'use client';
 
 import { UserMenu } from '@/components/UserMenu';
+import { BrandLogo } from '@/components/BrandLogo';
 import clsx from 'clsx';
 import type { ComponentPropsWithoutRef } from 'react';
 import Link from 'next/link';
@@ -58,11 +59,8 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
   return (
     <header className="sticky top-0 z-50 border-b border-[#e4e0d8] bg-cream dark:bg-[var(--bg)]">
       <div className="mx-auto flex h-[76px] max-w-[1280px] items-center justify-between gap-6 px-4 md:px-8">
-        <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm text-white dark:bg-white dark:text-ink">
-            TD
-          </span>
-          <span className="hidden sm:inline">Tiempo de Dios</span>
+        <Link href="/" className="flex shrink-0 items-center">
+          <BrandLogo height={36} priority />
         </Link>
         {!compact && (
           <nav className="hidden items-center gap-7 text-[15px] font-medium md:flex">
@@ -110,7 +108,7 @@ export function SiteFooter() {
     <footer className="mt-10 bg-[var(--footer)] px-4 py-16 text-[#d8d5cf] md:px-8">
       <div className="mx-auto grid max-w-[1280px] gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <h4 className="mb-3 text-sm uppercase tracking-widest text-white">Tiempo de Dios</h4>
+          <BrandLogo height={36} invert="always" className="mb-3" />
           <p className="text-sm">
             Iglesia en Santiago de Chile. Formación para crecer en la fe, juntos.
           </p>
