@@ -108,7 +108,7 @@ export function SiteFooter() {
     <footer className="mt-10 bg-[var(--footer)] px-4 py-16 text-[#d8d5cf] md:px-8">
       <div className="mx-auto grid max-w-[1280px] gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <BrandLogo height={36} invert="always" className="mb-3" />
+          <BrandLogo height={36} invert="always" className="mb-3" data-testid="footer-brand-logo" />
           <p className="text-sm">
             Iglesia en Santiago de Chile. Formación para crecer en la fe, juntos.
           </p>
