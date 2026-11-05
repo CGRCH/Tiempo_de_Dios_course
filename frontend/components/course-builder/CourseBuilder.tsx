@@ -7,6 +7,15 @@ import { API_URL, courseCoverUrl, formatDuration } from '@/lib/api';
 import clsx from 'clsx';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+function formatReviewDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('es-CL', { dateStyle: 'long', timeStyle: 'short' });
+  } catch {
+    return iso;
+  }
+}
+
 export type BuilderLesson = {
   id: number;
   title: string;
@@ -35,6 +44,7 @@ export type BuilderCourse = {
   category: number;
   status: string;
   rejection_reason: string;
+  submitted_for_review_at?: string | null;
   cover_url?: string | null;
   cover_placeholder: string;
   proposed_price_clp: number;
@@ -69,8 +79,18 @@ function authHeaders(token: string, json = true): HeadersInit {
   return h;
 }
 
-export function CourseBuilder({ slug, token }: { slug: string; token: string | null }) {
-  const [tab, setTab] = useState<'info' | 'curriculum' | 'review'>('info');
+export function CourseBuilder({
+  slug,
+  token,
+  initialTab,
+}: {
+  slug: string;
+  token: string | null;
+  initialTab?: 'info' | 'curriculum' | 'review';
+}) {
+  const [tab, setTab] = useState<'info' | 'curriculum' | 'review'>(() =>
+    initialTab && ['info', 'curriculum', 'review'].includes(initialTab) ? initialTab : 'info',
+  );
   const [course, setCourse] = useState<BuilderCourse | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [toast, setToast] = useState('');
@@ -99,6 +119,12 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
       .then((r) => r.json())
       .then((d) => setCategories(Array.isArray(d) ? d : d.results || []));
   }, [load]);
+
+  useEffect(() => {
+    if (initialTab && ['info', 'curriculum', 'review'].includes(initialTab)) {
+      setTab(initialTab);
+    }
+  }, [initialTab]);
 
   useEffect(() => {
     if (!toast) return;
@@ -552,7 +578,37 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
       )}
 
       {tab === 'review' && (
-        <Card className="space-y-4 p-6">
+        <Card className="space-y-4 p-6" data-testid="builder-review-panel">
+          <div className="space-y-3" data-testid="builder-review-status">
+            <div className="flex flex-wrap items-center gap-2">
+              <Tag tone={statusMeta.tone}>{statusMeta.label}</Tag>
+            </div>
+            {course.status === 'review' && (
+              <>
+                <p className="text-sm text-muted" data-testid="builder-submitted-date">
+                  Enviado a revisión:{' '}
+                  <b>{formatReviewDate(course.submitted_for_review_at)}</b>
+                </p>
+                <p
+                  className="rounded-xl bg-[#efece6] px-4 py-3 text-sm dark:bg-[#333]"
+                  data-testid="builder-review-readonly"
+                >
+                  Este curso está en revisión. No puedes editarlo hasta que el equipo responda (1–2 días
+                  hábiles).
+                </p>
+              </>
+            )}
+            {course.status === 'rejected' && course.rejection_reason && (
+              <p className="rounded-xl bg-[#fde8e8] px-4 py-3 text-sm text-red-900 dark:bg-[#442222]" data-testid="builder-rejection-reason">
+                <b>Motivo del rechazo:</b> {course.rejection_reason}
+              </p>
+            )}
+            {course.status === 'rejected' && (
+              <p className="text-sm text-muted">
+                Corrige lo indicado y vuelve a enviar el curso a revisión cuando esté listo.
+              </p>
+            )}
+          </div>
           <h3 className="text-lg font-bold">Lista de verificación</h3>
           <ul className="space-y-2 text-sm">
             {Object.entries(course.readiness?.items || {}).map(([key, ok]) => (

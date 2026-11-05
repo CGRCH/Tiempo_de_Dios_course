@@ -4,6 +4,7 @@ import { PanelShell } from '@/components/PanelShell';
 import { Card, Headline, Pill, Tag } from '@/components/ui';
 import { API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 const nav = [
@@ -94,7 +95,9 @@ export default function AdministracionPanelPage() {
         <Card className="p-6">
           <div className="mb-2 flex justify-between">
             <b className="text-lg">Bandeja de tickets</b>
-            <span className="text-sm text-muted">Ver todos →</span>
+            <Link href="/panel/administracion/tickets" className="text-sm font-semibold text-muted underline">
+              Ver todos →
+            </Link>
           </div>
           {tickets.map((t) => (
             <div key={t.id} className="border-t border-[#f0ede8] py-3">
@@ -130,7 +133,12 @@ export default function AdministracionPanelPage() {
               >
                 Aprobar
               </Pill>
-              <Pill variant="ghost" className="!px-3 !py-2 text-xs">
+              <Pill
+                variant="ghost"
+                className="!px-3 !py-2 text-xs"
+                href={`/panel/administracion/aprobacion?highlight=${encodeURIComponent((c as { slug?: string }).slug || String(c.id))}`}
+                data-testid={`review-course-${(c as { slug?: string }).slug || c.id}`}
+              >
                 Revisar
               </Pill>
             </div>

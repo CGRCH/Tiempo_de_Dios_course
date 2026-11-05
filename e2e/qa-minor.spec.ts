@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { loginAs } from './helpers/login';
+import { apiToken, patchSiteSettings, readTeacherEarningsVisible } from './helpers/api';
 
 async function login(page: Parameters<typeof loginAs>[0], username: string) {
   await loginAs(page, username);
@@ -88,21 +89,10 @@ test.describe('QA minor fixes', () => {
   });
 
   test('13 Ganancias redirects when earnings hidden', async ({ page, request }) => {
-    const api = process.env.E2E_API_URL || 'http://localhost:8000/api';
-    await login(page, 'carlos.mendez');
-    await page.goto('/panel/admin/configuracion');
-    const toggle = page.getByTestId('toggle-teacher-earnings');
-    await expect(page.getByTestId('save-settings')).toBeEnabled();
-    if (await toggle.isChecked()) {
-      await toggle.click();
-    }
-    await page.getByTestId('save-settings').click();
-    await expect(page.getByTestId('settings-saved')).toBeVisible();
+    const adminToken = await apiToken(request, 'carlos.mendez');
+    await patchSiteSettings(request, adminToken, { teacher_earnings_visible: false });
     await expect
-      .poll(async () => {
-        const r = await request.get(`${api}/settings/`);
-        return (await r.json()).teacher_earnings_visible;
-      })
+      .poll(() => readTeacherEarningsVisible(request), { timeout: 15000 })
       .toBe(false);
 
     await logout(page);
@@ -110,13 +100,7 @@ test.describe('QA minor fixes', () => {
     await page.goto('/panel/profesor/ganancias');
     await expect(page).toHaveURL(/\/panel\/profesor\/?$/, { timeout: 15000 });
 
-    await logout(page);
-    await login(page, 'carlos.mendez');
-    await page.goto('/panel/admin/configuracion');
-    const toggleOn = page.getByTestId('toggle-teacher-earnings');
-    if (!(await toggleOn.isChecked())) {
-      await toggleOn.click();
-    }
-    await page.getByTestId('save-settings').click();
+    await patchSiteSettings(request, adminToken, { teacher_earnings_visible: true });
+    await expect.poll(() => readTeacherEarningsVisible(request), { timeout: 15000 }).toBe(true);
   });
 });

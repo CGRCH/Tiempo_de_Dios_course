@@ -130,7 +130,8 @@ class SubmitCourseReviewView(APIView):
             )
         course.status = CourseStatus.REVIEW
         course.rejection_reason = ""
-        course.save(update_fields=["status", "rejection_reason"])
+        course.submitted_for_review_at = timezone.now()
+        course.save(update_fields=["status", "rejection_reason", "submitted_for_review_at"])
         log_action(request.user, "submit_review", course.slug)
         return Response({"status": course.status, "message": "Curso enviado a revisión"})
 

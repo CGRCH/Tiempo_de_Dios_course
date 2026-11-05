@@ -5,7 +5,8 @@ import { Card, Headline, Pill, Tag } from '@/components/ui';
 import { API_URL, Course } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useProfesorNav } from '@/lib/useProfesorNav';
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function ProfesorPanelPage() {
   const { token, user } = useAuth();
@@ -24,12 +25,16 @@ export default function ProfesorPanelPage() {
   }, [token]);
 
   const statusTone = (s: string) =>
-    s === 'published' ? 'ok' : s === 'review' ? 'rev' : 'dr';
+    s === 'published' ? 'ok' : s === 'review' ? 'rev' : s === 'rejected' ? 'red' : 'dr';
   const statusLabel: Record<string, string> = {
     published: 'Publicado',
     review: 'En revisión',
     draft: 'Borrador',
+    rejected: 'Rechazado',
   };
+
+  const reviewCourses = useMemo(() => courses.filter((c) => c.status === 'review'), [courses]);
+  const rejectedCourses = useMemo(() => courses.filter((c) => c.status === 'rejected'), [courses]);
 
   return (
     <PanelShell roleTag="Profesor" nav={nav} active="Mis cursos">
@@ -81,22 +86,49 @@ export default function ProfesorPanelPage() {
                 <td className="px-4 py-3.5">{c.rating_display}</td>
                 <td className="px-4 py-3.5 text-muted">reciente</td>
                 <td className="px-4 py-3.5 font-semibold">
-                  <a href={`/panel/profesor/cursos/${c.slug}`} className="underline">
+                  <Link href={`/panel/profesor/cursos/${c.slug}`} className="underline">
                     Editar →
-                  </a>
+                  </Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
-      <Card className="mt-6 flex flex-wrap items-center justify-between gap-4 p-6">
-        <div>
-          <b>“Cartas de Pablo II” está en revisión</b>
-          <p className="text-sm text-muted">El equipo de soporte lo revisará en 1–2 días hábiles.</p>
-        </div>
-        <Pill variant="ghost">Ver detalles</Pill>
-      </Card>
+      {reviewCourses.map((c) => (
+        <Card
+          key={c.id}
+          className="mt-6 flex flex-wrap items-center justify-between gap-4 p-6"
+          data-testid={`review-banner-${c.slug}`}
+        >
+          <div>
+            <b>“{c.title}” está en revisión</b>
+            <p className="text-sm text-muted">El equipo de soporte lo revisará en 1–2 días hábiles.</p>
+          </div>
+          <Pill
+            variant="ghost"
+            href={`/panel/profesor/cursos/${c.slug}?tab=review`}
+            data-testid={`review-details-${c.slug}`}
+          >
+            Ver detalles
+          </Pill>
+        </Card>
+      ))}
+      {rejectedCourses.map((c) => (
+        <Card
+          key={c.id}
+          className="mt-6 flex flex-wrap items-center justify-between gap-4 border-red-200 p-6 dark:border-red-900"
+          data-testid={`rejected-banner-${c.slug}`}
+        >
+          <div>
+            <b>“{c.title}” fue rechazado</b>
+            <p className="text-sm text-muted">Revisa el motivo y actualiza el curso antes de reenviarlo.</p>
+          </div>
+          <Pill variant="ghost" href={`/panel/profesor/cursos/${c.slug}?tab=review`} data-testid={`rejected-details-${c.slug}`}>
+            Ver detalles
+          </Pill>
+        </Card>
+      ))}
     </PanelShell>
   );
 }

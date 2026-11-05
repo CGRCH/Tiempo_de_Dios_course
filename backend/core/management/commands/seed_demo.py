@@ -10,6 +10,8 @@ class Command(BaseCommand):
         from django.conf import settings
         from django.contrib.auth.models import Group
 
+        from django.utils import timezone
+
         from core.models import Category, SiteSettings
         from courses.models import Course, CourseModule, CourseStatus, Lesson
         from enrollments.models import Enrollment, LessonProgress
@@ -289,6 +291,7 @@ class Command(BaseCommand):
                 "status": CourseStatus.REVIEW,
                 "price_clp": 0,
                 "cover_placeholder": "c1",
+                "submitted_for_review_at": timezone.now(),
             },
         )
         Course.objects.update_or_create(

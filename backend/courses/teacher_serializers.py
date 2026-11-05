@@ -48,6 +48,7 @@ class TeacherCourseBuilderSerializer(CourseListSerializer):
     learning_objectives = serializers.ListField(child=serializers.CharField(), required=False)
     proposed_price_clp = serializers.IntegerField(required=False)
     rejection_reason = serializers.CharField(read_only=True)
+    submitted_for_review_at = serializers.DateTimeField(read_only=True)
     category = serializers.IntegerField(source="category_id", read_only=True)
     readiness = serializers.SerializerMethodField()
 
@@ -61,6 +62,7 @@ class TeacherCourseBuilderSerializer(CourseListSerializer):
             "learning_objectives",
             "proposed_price_clp",
             "rejection_reason",
+            "submitted_for_review_at",
             "readiness",
         )
 

@@ -34,6 +34,7 @@ class Course(models.Model):
         max_length=20, choices=CourseStatus.choices, default=CourseStatus.DRAFT
     )
     rejection_reason = models.TextField(blank=True)
+    submitted_for_review_at = models.DateTimeField(null=True, blank=True)
     level = models.CharField(
         max_length=20, choices=CourseLevel.choices, default=CourseLevel.INTERMEDIATE
     )
