@@ -4,6 +4,7 @@ import { CourseCover } from '@/components/CourseCover';
 import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader, Tag } from '@/components/ui';
 import { firstPreviewLesson } from '@/lib/courseLessons';
 import { API_URL, Course, formatCLP } from '@/lib/api';
+import { registerPath } from '@/lib/authPaths';
 import { useAuth } from '@/lib/auth';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -20,7 +21,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!token) {
-      router.replace('/ingresar');
+      router.replace(registerPath(`/checkout/${slug}`));
       return;
     }
     fetch(`${API_URL}/courses/${slug}/`, {

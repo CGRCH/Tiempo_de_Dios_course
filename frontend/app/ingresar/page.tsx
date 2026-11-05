@@ -2,13 +2,17 @@
 
 import { AuthBrandMark } from '@/components/BrandLogo';
 import { Card, SiteFooter, SiteHeader } from '@/components/ui';
+import { loginPath, registerPath, safeNextPath } from '@/lib/authPaths';
 import { useAuth } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNextPath(searchParams.get('next'));
   const [username, setUsername] = useState('camila.m');
   const [password, setPassword] = useState('Demo2026!');
   const [error, setError] = useState('');
@@ -17,7 +21,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await login(username, password);
-      router.push('/mis-cursos');
+      router.push(next);
     } catch {
       setError('No pudimos iniciar sesión. Revisa tus datos.');
     }
@@ -59,6 +63,13 @@ export default function LoginPage() {
               Entrar
             </button>
           </form>
+          <Link
+            href={registerPath(searchParams.get('next'))}
+            data-testid="login-register-link"
+            className="mt-4 block text-center text-sm font-semibold underline"
+          >
+            ¿No tienes cuenta? Regístrate
+          </Link>
           <p className="mt-6 text-xs text-muted">
             Demo: camila.m, f.rojas, marta.ibanez, carlos.mendez — contraseña Demo2026!
           </p>
@@ -66,5 +77,13 @@ export default function LoginPage() {
       </section>
       <SiteFooter />
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-muted">Cargando…</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

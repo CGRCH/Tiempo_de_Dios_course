@@ -53,12 +53,13 @@ export function ThemeToggle() {
 export function SiteHeader({ active = 'Cursos', compact = false }: { active?: string; compact?: boolean }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const resolved = links.find((l) => pathname === l.href || pathname.startsWith(l.href + '/'))?.label || active;
   const panel = panelLinkForRole(user?.role);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#e4e0d8] bg-cream dark:bg-[var(--bg)]">
-      <div className="mx-auto flex h-[76px] max-w-[1280px] items-center justify-between gap-6 px-4 md:px-8">
+      <div className="mx-auto flex h-[76px] max-w-[1280px] items-center justify-between gap-4 px-4 md:px-8">
         <Link href="/" className="flex shrink-0 items-center">
           <BrandLogo height={36} priority />
         </Link>
@@ -84,7 +85,19 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
             )}
           </nav>
         )}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {!compact && (
+            <button
+              type="button"
+              className="rounded-lg border border-[#ddd] px-3 py-2 text-sm font-semibold md:hidden"
+              data-testid="mobile-menu-button"
+              aria-expanded={mobileNavOpen}
+              aria-label="Abrir menú"
+              onClick={() => setMobileNavOpen((v) => !v)}
+            >
+              Menú
+            </button>
+          )}
           <div className="hidden md:block">
             <ThemeToggle />
           </div>
@@ -99,6 +112,47 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
           )}
         </div>
       </div>
+      {!compact && mobileNavOpen && (
+        <nav
+          data-testid="mobile-nav"
+          className="border-t border-[#e4e0d8] px-4 py-4 md:hidden"
+        >
+          <ul className="space-y-3 text-[15px] font-medium">
+            {links.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} onClick={() => setMobileNavOpen(false)}>
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+            {panel && (
+              <li>
+                <Link href={panel.href} onClick={() => setMobileNavOpen(false)}>
+                  {panel.label}
+                </Link>
+              </li>
+            )}
+            {!user && (
+              <>
+                <li>
+                  <Link
+                    href="/registro"
+                    data-testid="header-register-mobile"
+                    onClick={() => setMobileNavOpen(false)}
+                  >
+                    Crear cuenta
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/ingresar" onClick={() => setMobileNavOpen(false)}>
+                    Ingresar
+                  </Link>
+                </li>
+              </>
+            )}
+          </ul>
+        </nav>
+      )}
     </header>
   );
 }

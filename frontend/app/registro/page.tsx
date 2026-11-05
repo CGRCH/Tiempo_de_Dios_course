@@ -1,14 +1,18 @@
 'use client';
 
 import { AuthBrandMark } from '@/components/BrandLogo';
-import { Card, Pill, SiteFooter, SiteHeader } from '@/components/ui';
-import { registerUser } from '@/lib/auth';
+import { Card, SiteFooter, SiteHeader } from '@/components/ui';
+import { loginPath, safeNextPath } from '@/lib/authPaths';
+import { registerUser, useAuth } from '@/lib/auth';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNextPath(searchParams.get('next'));
+  const { login } = useAuth();
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -17,14 +21,20 @@ export default function RegisterPage() {
     last_name: '',
   });
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBusy(true);
+    setError('');
     try {
       await registerUser(form);
-      router.push('/ingresar');
+      await login(form.username, form.password);
+      router.push(next);
     } catch {
       setError('No se pudo crear la cuenta.');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -53,17 +63,30 @@ export default function RegisterPage() {
             <button
               type="submit"
               data-testid="register-submit"
-              className="w-full rounded-full bg-ink py-3 font-semibold text-white"
+              disabled={busy}
+              className="w-full rounded-full bg-ink py-3 font-semibold text-white disabled:opacity-60"
             >
-              Registrarme
+              {busy ? 'Creando cuenta…' : 'Registrarme'}
             </button>
           </form>
-          <Link href="/ingresar" className="mt-4 block text-sm text-muted">
+          <Link
+            href={loginPath(searchParams.get('next'))}
+            data-testid="register-login-link"
+            className="mt-4 block text-center text-sm font-semibold underline"
+          >
             ¿Ya tienes cuenta? Ingresar
           </Link>
         </Card>
       </section>
       <SiteFooter />
     </>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-muted">Cargando…</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

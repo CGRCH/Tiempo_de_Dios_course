@@ -75,8 +75,8 @@ test.describe('QA minor fixes', () => {
     await page.getByTestId('register-first_name').fill('Les');
     await page.getByTestId('register-last_name').fill('Test');
     await page.getByTestId('register-submit').click();
-    await page.waitForURL('**/ingresar');
-    await login(page, uid, 'Demo2026!QA');
+    await page.waitForURL('**/mis-cursos', { timeout: 30000 });
+    await expect(page.getByTestId('avatar-menu-button')).toBeVisible({ timeout: 15000 });
     await page.goto('/cursos/liderazgo-con-proposito');
     await page.getByTestId('enroll-button').click();
     await page.waitForURL('**/checkout/**');

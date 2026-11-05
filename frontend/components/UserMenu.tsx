@@ -20,13 +20,23 @@ export function UserMenu() {
 
   if (!user) {
     return (
-      <Link
-        href="/ingresar"
-        data-testid="header-login"
-        className="rounded-full border border-ink px-4 py-2 text-sm font-semibold"
-      >
-        Ingresar
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/registro"
+          data-testid="header-register"
+          className="rounded-full border border-ink px-3 py-2 text-sm font-semibold sm:px-4"
+        >
+          <span className="hidden sm:inline">Crear cuenta</span>
+          <span className="sm:hidden">Registro</span>
+        </Link>
+        <Link
+          href="/ingresar"
+          data-testid="header-login"
+          className="rounded-full bg-ink px-3 py-2 text-sm font-semibold text-white sm:px-4"
+        >
+          Ingresar
+        </Link>
+      </div>
     );
   }
 

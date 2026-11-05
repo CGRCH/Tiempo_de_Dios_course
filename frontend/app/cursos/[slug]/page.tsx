@@ -4,6 +4,7 @@ import { CourseCover } from '@/components/CourseCover';
 import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader } from '@/components/ui';
 import { firstPreviewLesson } from '@/lib/courseLessons';
 import { API_URL, Course, Lesson, formatCLP } from '@/lib/api';
+import { registerPath, loginPath } from '@/lib/authPaths';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -12,7 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 export default function CourseDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [openModule, setOpenModule] = useState(0);
@@ -50,11 +51,12 @@ export default function CourseDetailPage() {
   const canOpenLesson = (l: Lesson) => enrolled || l.is_preview;
 
   const enroll = async () => {
+    const free = course?.is_free || course?.price_clp === 0;
+    const afterAuth = free ? `/cursos/${slug}` : `/checkout/${slug}`;
     if (!token) {
-      window.location.href = '/ingresar';
+      router.push(registerPath(afterAuth));
       return;
     }
-    const free = course?.is_free || course?.price_clp === 0;
     if (!free) {
       router.push(`/checkout/${slug}`);
       return;
@@ -207,9 +209,26 @@ export default function CourseDetailPage() {
                     Ir al curso
                   </Pill>
                 ) : (
-                  <Pill className="w-full" data-testid="enroll-button" onClick={enroll}>
-                    Inscribirme
-                  </Pill>
+                  <>
+                    <Pill className="w-full" data-testid="enroll-button" onClick={enroll}>
+                      Inscribirme
+                    </Pill>
+                    {!user && (
+                      <p className="mt-2 text-center text-sm text-muted" data-testid="enroll-auth-hint">
+                        <Link href={loginPath(free ? `/cursos/${slug}` : `/checkout/${slug}`)} className="font-semibold underline">
+                          Ingresar
+                        </Link>
+                        {' · '}
+                        <Link
+                          href={registerPath(free ? `/cursos/${slug}` : `/checkout/${slug}`)}
+                          data-testid="course-register-link"
+                          className="font-semibold underline"
+                        >
+                          Crear cuenta
+                        </Link>
+                      </p>
+                    )}
+                  </>
                 )}
                 {previewLesson && (
                   <Pill
