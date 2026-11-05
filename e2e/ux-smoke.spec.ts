@@ -38,4 +38,59 @@ test.describe('UX smoke', () => {
     await page.getByRole('link', { name: 'Privacidad' }).click();
     await expect(page).toHaveURL(/\/privacidad/);
   });
+
+  test('comunidad page loads', async ({ page }) => {
+    await page.goto('/comunidad');
+    await expect(page.getByTestId('comunidad-coming-soon')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /comunidad/i })).toBeVisible();
+  });
+});
+
+test.describe('Mobile navigation', () => {
+  test.use({ viewport: { width: 375, height: 667 } });
+
+  test('opens menu, navigates, and closes', async ({ page }) => {
+    await page.goto('/');
+    const menuBtn = page.getByTestId('mobile-menu-button');
+    await expect(menuBtn).toBeVisible();
+    await expect(menuBtn).toHaveAttribute('aria-expanded', 'false');
+
+    await menuBtn.click();
+    await expect(menuBtn).toHaveAttribute('aria-expanded', 'true');
+    const nav = page.getByTestId('mobile-nav');
+    await expect(nav).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Cursos', exact: true })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Mis cursos' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Profesores' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Comunidad' })).toBeVisible();
+    await expect(page.getByTestId('header-register-mobile')).toBeVisible();
+    await expect(page.getByTestId('header-login-mobile')).toBeVisible();
+
+    await nav.getByRole('link', { name: 'Profesores' }).click();
+    await expect(page).toHaveURL(/\/profesores/);
+    await expect(nav).not.toBeVisible();
+    await expect(menuBtn).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('escape and backdrop close menu', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('mobile-menu-button').click();
+    await expect(page.getByTestId('mobile-nav')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('mobile-nav')).not.toBeVisible();
+
+    await page.getByTestId('mobile-menu-button').click();
+    await page.getByTestId('mobile-nav-backdrop').click({ force: true });
+    await expect(page.getByTestId('mobile-nav')).not.toBeVisible();
+  });
+
+  test('logged-in menu shows panel link without duplicate login', async ({ page }) => {
+    await loginAs(page, 'f.rojas', undefined, '/mis-cursos');
+    await page.goto('/');
+    await page.getByTestId('mobile-menu-button').click();
+    const nav = page.getByTestId('mobile-nav');
+    await expect(nav.getByTestId('mobile-panel-link')).toHaveText('Profesor');
+    await expect(nav.getByTestId('header-login-mobile')).not.toBeVisible();
+    await expect(page.getByTestId('avatar-menu-button')).toBeVisible();
+  });
 });

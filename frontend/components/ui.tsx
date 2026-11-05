@@ -54,8 +54,33 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
   const pathname = usePathname();
   const { user } = useAuth();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const mobileNavId = 'site-mobile-nav';
   const resolved = links.find((l) => pathname === l.href || pathname.startsWith(l.href + '/'))?.label || active;
   const panel = panelLinkForRole(user?.role);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileNavOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
+
+  const closeMobileNav = () => setMobileNavOpen(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-cream dark:bg-[var(--bg)]">
@@ -89,13 +114,14 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
           {!compact && (
             <button
               type="button"
-              className="rounded-lg border border-[#ddd] px-3 py-2 text-sm font-semibold md:hidden"
+              className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold md:hidden"
               data-testid="mobile-menu-button"
               aria-expanded={mobileNavOpen}
-              aria-label="Abrir menú"
+              aria-controls={mobileNavId}
+              aria-label={mobileNavOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
               onClick={() => setMobileNavOpen((v) => !v)}
             >
-              Menú
+              {mobileNavOpen ? 'Cerrar' : 'Menú'}
             </button>
           )}
           <div className="hidden md:block">
@@ -113,45 +139,71 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
         </div>
       </div>
       {!compact && mobileNavOpen && (
-        <nav
-          data-testid="mobile-nav"
-          className="border-t border-[var(--border)] px-4 py-4 md:hidden"
-        >
-          <ul className="space-y-3 text-[15px] font-medium">
-            {links.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} onClick={() => setMobileNavOpen(false)}>
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-            {panel && (
-              <li>
-                <Link href={panel.href} onClick={() => setMobileNavOpen(false)}>
-                  {panel.label}
-                </Link>
-              </li>
-            )}
-            {!user && (
-              <>
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 top-[76px] z-40 bg-black/45 md:hidden"
+            aria-label="Cerrar menú"
+            data-testid="mobile-nav-backdrop"
+            onClick={closeMobileNav}
+          />
+          <nav
+            id={mobileNavId}
+            data-testid="mobile-nav"
+            aria-label="Navegación principal"
+            className="relative z-50 border-t border-[var(--border)] bg-cream px-4 py-4 shadow-lg dark:bg-[var(--bg)] md:hidden"
+          >
+            <ul className="space-y-3 text-[15px] font-medium">
+              {links.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className="block rounded-lg px-2 py-2 hover:bg-[var(--border)]/40"
+                    onClick={closeMobileNav}
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+              {panel && (
                 <li>
                   <Link
-                    href="/registro"
-                    data-testid="header-register-mobile"
-                    onClick={() => setMobileNavOpen(false)}
+                    href={panel.href}
+                    data-testid="mobile-panel-link"
+                    className="block rounded-lg px-2 py-2 hover:bg-[var(--border)]/40"
+                    onClick={closeMobileNav}
                   >
-                    Crear cuenta
+                    {panel.label}
                   </Link>
                 </li>
-                <li>
-                  <Link href="/ingresar" onClick={() => setMobileNavOpen(false)}>
-                    Ingresar
-                  </Link>
-                </li>
-              </>
-            )}
-          </ul>
-        </nav>
+              )}
+              {!user && (
+                <>
+                  <li className="border-t border-[var(--border)] pt-3">
+                    <Link
+                      href="/registro"
+                      data-testid="header-register-mobile"
+                      className="block rounded-lg px-2 py-2 hover:bg-[var(--border)]/40"
+                      onClick={closeMobileNav}
+                    >
+                      Crear cuenta
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/ingresar"
+                      data-testid="header-login-mobile"
+                      className="block rounded-lg px-2 py-2 hover:bg-[var(--border)]/40"
+                      onClick={closeMobileNav}
+                    >
+                      Ingresar
+                    </Link>
+                  </li>
+                </>
+              )}
+            </ul>
+          </nav>
+        </>
       )}
     </header>
   );
