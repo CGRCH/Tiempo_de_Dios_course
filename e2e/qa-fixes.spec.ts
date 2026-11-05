@@ -80,12 +80,24 @@ test.describe('QA fixes UI', () => {
     await page.getByTestId('create-course-submit').click();
     await page.waitForURL(/\/panel\/profesor\/cursos\/[^/]+$/, { timeout: 15000 });
     await expect(page.url()).not.toContain('undefined');
+
+    await page.getByTestId('builder-tab-curriculum').click();
     await page.getByTestId('create-module').click();
-    await expect(page.locator('text=Módulo creado')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('builder-toast')).toContainText(/Módulo creado/i, { timeout: 10000 });
+
     await page.getByTestId('create-lesson').click();
-    await expect(page.locator('text=Lección creada')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('lesson-editor-modal')).toBeVisible();
+    const sampleVideo = path.join(__dirname, 'fixtures', 'sample.mp4');
+    await page.getByTestId('upload-video').setInputFiles(sampleVideo);
+    await expect
+      .poll(async () => page.getByTestId('video-status').textContent(), { timeout: 120_000 })
+      .toContain('Listo');
+
+    await page.getByRole('button', { name: 'Cerrar' }).click();
+    await page.getByTestId('builder-tab-review').click();
     await page.getByTestId('submit-review').click();
-    await expect(page.locator('text=enviado a revisión')).toBeVisible();
+    await expect(page.getByTestId('builder-toast')).toContainText(/revisión/i, { timeout: 15000 });
+
     await page.goto('/panel/profesor');
     await expect(page.locator('table')).toContainText(title);
     await page.screenshot({ path: path.join(shots, '05-teacher-course.png'), fullPage: true });

@@ -24,6 +24,7 @@ class Course(models.Model):
     )
     title = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, max_length=280)
+    subtitle = models.CharField(max_length=255, blank=True)
     description = models.TextField()
     cover = models.ImageField(upload_to="covers/", blank=True, null=True)
     cover_placeholder = models.CharField(
@@ -32,6 +33,7 @@ class Course(models.Model):
     status = models.CharField(
         max_length=20, choices=CourseStatus.choices, default=CourseStatus.DRAFT
     )
+    rejection_reason = models.TextField(blank=True)
     level = models.CharField(
         max_length=20, choices=CourseLevel.choices, default=CourseLevel.INTERMEDIATE
     )
@@ -86,9 +88,18 @@ class CourseModule(models.Model):
         return f"{self.course.title} — {self.title}"
 
 
+class LessonType(models.TextChoices):
+    VIDEO = "video", "Video"
+    TEXT = "text", "Texto"
+
+
 class Lesson(models.Model):
     module = models.ForeignKey(CourseModule, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    lesson_type = models.CharField(
+        max_length=10, choices=LessonType.choices, default=LessonType.VIDEO
+    )
     order = models.PositiveIntegerField(default=0)
     duration_seconds = models.PositiveIntegerField(default=0)
     is_preview = models.BooleanField(default=False)

@@ -22,6 +22,12 @@ from courses.views import (
     TeacherStudentsView,
     TeacherStatsView,
 )
+from courses.teacher_builder_views import (
+    TeacherLessonDetailView,
+    TeacherLessonMoveView,
+    TeacherModuleDetailView,
+    TeacherModuleMoveView,
+)
 
 urlpatterns = [
     path("courses/", CourseListView.as_view(), name="course-list"),
@@ -40,7 +46,11 @@ urlpatterns = [
     path("teacher/questions/<int:pk>/reply/", TeacherQuestionReplyView.as_view()),
     path("teacher/reviews/", TeacherReviewsView.as_view(), name="teacher-reviews"),
     path("teacher/courses/<slug:slug>/modules/", TeacherModuleCreateView.as_view()),
+    path("teacher/modules/<int:module_id>/", TeacherModuleDetailView.as_view()),
+    path("teacher/modules/<int:module_id>/move/", TeacherModuleMoveView.as_view()),
     path("teacher/modules/<int:module_id>/lessons/", TeacherLessonCreateView.as_view()),
+    path("teacher/lessons/<int:lesson_id>/", TeacherLessonDetailView.as_view()),
+    path("teacher/lessons/<int:lesson_id>/move/", TeacherLessonMoveView.as_view()),
     path("teacher/lessons/<int:lesson_id>/video/", LessonVideoUploadView.as_view()),
     path("lessons/<int:pk>/", LessonDetailView.as_view(), name="lesson-detail"),
     path("lessons/<int:lesson_id>/notes/", LessonNoteListCreateView.as_view()),

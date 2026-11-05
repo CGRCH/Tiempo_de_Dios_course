@@ -1,7 +1,7 @@
 from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import generics, status
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,7 +11,6 @@ from core.permissions import IsAdministracion, IsProfesor, IsSuperAdmin
 from core.roles import is_profesor
 from core.utils import log_action
 from courses.models import Course, CourseModule, CourseQuestion, CourseReview, CourseStatus, Lesson, LessonNote
-from courses.teacher_engagement_serializers import CourseQuestionSerializer, CourseReviewSerializer
 from courses.serializers import (
     CourseDetailSerializer,
     CourseListSerializer,
@@ -19,6 +18,8 @@ from courses.serializers import (
     LessonDetailSerializer,
     LessonNoteSerializer,
 )
+from courses.teacher_engagement_serializers import CourseQuestionSerializer, CourseReviewSerializer
+from courses.teacher_serializers import TeacherCourseBuilderSerializer
 from courses.tasks import transcode_lesson_video
 from enrollments.models import Enrollment
 
@@ -78,7 +79,11 @@ class TeacherCourseListView(generics.ListCreateAPIView):
         return Course.objects.filter(teacher=self.request.user).select_related("category")
 
     def perform_create(self, serializer):
-        course = serializer.save(teacher=self.request.user, status=CourseStatus.DRAFT)
+        course = serializer.save(
+            teacher=self.request.user,
+            status=CourseStatus.DRAFT,
+            cover_placeholder=serializer.validated_data.get("cover_placeholder") or "c1",
+        )
         log_action(self.request.user, "create_course", course.slug)
 
     def create(self, request, *args, **kwargs):
@@ -92,24 +97,42 @@ class TeacherCourseListView(generics.ListCreateAPIView):
 
 class TeacherCourseDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated, IsProfesor]
-    serializer_class = CourseWriteSerializer
     lookup_field = "slug"
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return TeacherCourseBuilderSerializer
+        return CourseWriteSerializer
 
     def get_queryset(self):
-        return Course.objects.filter(teacher=self.request.user)
+        return Course.objects.filter(teacher=self.request.user).prefetch_related(
+            "modules__lessons"
+        )
 
 
 class SubmitCourseReviewView(APIView):
     permission_classes = [IsAuthenticated, IsProfesor]
 
     def post(self, request, slug):
-        course = Course.objects.get(slug=slug, teacher=request.user)
+        course = Course.objects.prefetch_related("modules__lessons").get(
+            slug=slug, teacher=request.user
+        )
         if course.status not in (CourseStatus.DRAFT, CourseStatus.REJECTED):
             return Response({"detail": "Estado no válido."}, status=status.HTTP_400_BAD_REQUEST)
+        from courses.services import course_review_checklist
+
+        check = course_review_checklist(course)
+        if not check["ready"]:
+            return Response(
+                {"detail": "Completa el curso antes de enviar.", "missing": check["missing"]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         course.status = CourseStatus.REVIEW
-        course.save(update_fields=["status"])
+        course.rejection_reason = ""
+        course.save(update_fields=["status", "rejection_reason"])
         log_action(request.user, "submit_review", course.slug)
-        return Response({"status": course.status})
+        return Response({"status": course.status, "message": "Curso enviado a revisión"})
 
 
 class ApproveCourseView(APIView):
@@ -125,7 +148,8 @@ class ApproveCourseView(APIView):
             log_action(request.user, "approve_course", course.slug)
         else:
             course.status = CourseStatus.REJECTED
-            course.save(update_fields=["status"])
+            course.rejection_reason = request.data.get("reason", "Revisión rechazada.")
+            course.save(update_fields=["status", "rejection_reason"])
             log_action(request.user, "reject_course", course.slug)
         return Response({"status": course.status})
 
@@ -202,9 +226,10 @@ class LessonVideoUploadView(APIView):
 
         saved = default_storage.save(path, video)
         lesson.duration_seconds = int(request.data.get("duration_seconds", 600))
-        lesson.save(update_fields=["duration_seconds"])
+        lesson.video_status = "processing"
+        lesson.save(update_fields=["duration_seconds", "video_status"])
         transcode_lesson_video.delay(lesson.id, saved)
-        return Response({"status": "processing", "lesson_id": lesson.id})
+        return Response({"status": "processing", "lesson_id": lesson.id, "video_status": "processing"})
 
 
 class TeacherModuleCreateView(APIView):
@@ -232,8 +257,19 @@ class TeacherLessonCreateView(APIView):
             order=order,
             duration_seconds=int(request.data.get("duration_seconds", 300)),
             is_preview=bool(request.data.get("is_preview", False)),
+            lesson_type=request.data.get("lesson_type", "video"),
+            description=request.data.get("description", ""),
         )
-        return Response({"id": lesson.id, "title": lesson.title})
+        module.course.recalc_duration()
+        return Response(
+            {
+                "id": lesson.id,
+                "title": lesson.title,
+                "order": lesson.order,
+                "lesson_type": lesson.lesson_type,
+                "video_status": lesson.video_status,
+            }
+        )
 
 
 class TeacherStudentsView(APIView):

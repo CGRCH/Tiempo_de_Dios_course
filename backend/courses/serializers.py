@@ -22,6 +22,8 @@ class LessonSerializer(serializers.ModelSerializer):
             "duration_seconds",
             "is_preview",
             "video_status",
+            "description",
+            "lesson_type",
         )
 
 
@@ -175,6 +177,7 @@ class CourseWriteSerializer(serializers.ModelSerializer):
             "id",
             "slug",
             "title",
+            "subtitle",
             "description",
             "category",
             "level",
