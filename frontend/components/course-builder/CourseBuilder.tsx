@@ -1,5 +1,6 @@
 'use client';
 
+import { Dropzone } from '@/components/Dropzone';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { Card, Pill, Tag } from '@/components/ui';
 import { API_URL, courseCoverUrl, formatDuration } from '@/lib/api';
@@ -75,11 +76,11 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
   const [toast, setToast] = useState('');
   const [saving, setSaving] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [lessonModal, setLessonModal] = useState<BuilderLesson | null>(null);
   const [lessonModuleId, setLessonModuleId] = useState<number | null>(null);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [uploadPhase, setUploadPhase] = useState<'idle' | 'uploading' | 'processing'>('idle');
+  const [videoUploadError, setVideoUploadError] = useState<string | null>(null);
 
   const editable = course?.status === 'draft' || course?.status === 'rejected';
 
@@ -164,7 +165,6 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
       });
       if (r.ok) {
         setCoverFile(null);
-        setCoverPreview(null);
         await load();
         setToast('Portada actualizada.');
       }
@@ -236,6 +236,7 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
 
   const uploadVideo = (file: File) => {
     if (!token || !lessonModal) return;
+    setVideoUploadError(null);
     setUploadPhase('uploading');
     setUploadPct(0);
     const xhr = new XMLHttpRequest();
@@ -252,8 +253,14 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
         setToast('Video subido — procesando…');
       } else {
         setUploadPhase('idle');
+        setVideoUploadError('Error al subir video. Intenta de nuevo.');
         setToast('Error al subir video.');
       }
+    };
+    xhr.onerror = () => {
+      setUploadPct(null);
+      setUploadPhase('idle');
+      setVideoUploadError('Error de red al subir el video.');
     };
     const fd = new FormData();
     fd.append('video', file);
@@ -278,15 +285,14 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
 
   const statusMeta = course ? STATUS_LABEL[course.status] || STATUS_LABEL.draft : STATUS_LABEL.draft;
 
-  const coverDisplay = useMemo(() => {
-    if (coverPreview) return coverPreview;
+  const serverCoverUrl = useMemo(() => {
     if (course?.cover_url) {
       const u = course.cover_url;
       return u.startsWith('http') ? u : `${typeof window !== 'undefined' ? '' : API_URL.replace(/\/api\/?$/, '')}${u}`;
     }
     if (course) return courseCoverUrl(course);
-    return '';
-  }, [course, coverPreview]);
+    return null;
+  }, [course]);
 
   if (!course) {
     return <Card className="mt-6 p-8 text-muted">Cargando constructor…</Card>;
@@ -418,22 +424,17 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
           </label>
           <div>
             <p className="text-sm font-medium">Portada</p>
-            {coverDisplay && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverDisplay} alt="" className="mt-2 h-40 w-full max-w-md rounded-xl object-cover" />
-            )}
-            <input
-              type="file"
+            <Dropzone
+              key={serverCoverUrl || course.slug}
+              className="mt-2"
+              testId="builder-cover-upload"
               accept="image/*"
+              acceptHint="PNG, JPG o WebP — recomendado 1200×630, máx. 5 MB"
+              maxBytes={5 * 1024 * 1024}
+              previewMode="image"
               disabled={!editable}
-              className="mt-2 block text-sm"
-              data-testid="builder-cover-upload"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (!f) return;
-                setCoverFile(f);
-                setCoverPreview(URL.createObjectURL(f));
-              }}
+              existingPreviewUrl={serverCoverUrl}
+              onFileSelected={(f) => setCoverFile(f)}
             />
           </div>
         </Card>
@@ -614,29 +615,24 @@ export function CourseBuilder({ slug, token }: { slug: string; token: string | n
             {lessonModal.lesson_type === 'video' && (
               <div className="mt-4">
                 <p className="text-sm font-medium">Video</p>
-                <div
-                  className="mt-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#ccc] bg-cream p-6 dark:bg-[#2a2825]"
-                  data-testid="video-dropzone"
-                >
-                  <p className="text-sm text-muted">Arrastra un MP4 o selecciona archivo</p>
-                  <input
-                    data-testid="upload-video"
-                    type="file"
-                    accept="video/*"
-                    className="mt-2 text-sm"
-                    onChange={(e) => e.target.files?.[0] && uploadVideo(e.target.files[0])}
-                  />
-                  {uploadPct !== null && (
-                    <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#ddd]">
-                      <div className="h-full bg-ink" style={{ width: `${uploadPct}%` }} />
-                    </div>
-                  )}
-                  <p className="mt-2 text-sm" data-testid="video-status">
-                    {uploadPhase === 'uploading' && 'Subiendo…'}
-                    {uploadPhase === 'processing' && 'Procesando…'}
-                    {uploadPhase === 'idle' && `Estado: ${VIDEO_BADGE[lessonModal.video_status] || lessonModal.video_status}`}
-                  </p>
-                </div>
+                <Dropzone
+                  className="mt-2"
+                  testId="upload-video"
+                  accept="video/*"
+                  acceptHint="MP4, MOV u otros formatos de video — máx. 500 MB"
+                  maxBytes={500 * 1024 * 1024}
+                  previewMode="video"
+                  progress={uploadPhase === 'uploading' ? uploadPct : null}
+                  error={videoUploadError}
+                  onFileSelected={(f) => {
+                    if (f) uploadVideo(f);
+                  }}
+                />
+                <p className="mt-2 text-sm" data-testid="video-status">
+                  {uploadPhase === 'uploading' && 'Subiendo…'}
+                  {uploadPhase === 'processing' && 'Procesando…'}
+                  {uploadPhase === 'idle' && `Estado: ${VIDEO_BADGE[lessonModal.video_status] || lessonModal.video_status}`}
+                </p>
                 {lessonModal.hls_url && lessonModal.video_status === 'ready' && (
                   <div className="mt-3">
                     <VideoPlayer src={lessonModal.hls_url} />

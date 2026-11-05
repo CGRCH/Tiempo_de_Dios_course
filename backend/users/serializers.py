@@ -7,6 +7,7 @@ from users.models import User
 class UserPublicSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     initials = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -19,7 +20,17 @@ class UserPublicSerializer(serializers.ModelSerializer):
             "bio",
             "initials",
             "role",
+            "avatar_url",
         )
+
+    def get_avatar_url(self, obj):
+        if not obj.avatar:
+            return None
+        request = self.context.get("request")
+        url = obj.avatar.url
+        if request:
+            return request.build_absolute_uri(url)
+        return url
 
     def get_initials(self, obj):
         return obj.initials()
@@ -72,4 +83,4 @@ class RegisterSerializer(serializers.ModelSerializer):
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("first_name", "last_name", "bio", "email")
+        fields = ("first_name", "last_name", "bio", "email", "avatar")

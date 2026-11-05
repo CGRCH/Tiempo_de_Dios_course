@@ -1,17 +1,9 @@
 import { expect, test } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { loginAs } from './helpers/login';
 
-const PASS = 'Demo2026!';
 const shots = '/opt/cursor/artifacts/course-builder';
-
-async function login(page, username: string, password = PASS) {
-  await page.goto('/ingresar');
-  await page.getByTestId('login-username').fill(username);
-  await page.getByTestId('login-password').fill(password);
-  await page.getByTestId('login-submit').click();
-  await page.waitForURL('**/mis-cursos', { timeout: 30000 });
-}
 
 test.describe.configure({ timeout: 120_000 });
 
@@ -20,7 +12,7 @@ test.beforeAll(() => {
 });
 
 test('teacher course builder full flow', async ({ page }) => {
-  await login(page, 'f.rojas');
+  await loginAs(page, 'f.rojas');
   await page.goto('/panel/profesor/crear');
   const title = `Builder ${Date.now()}`;
   await page.getByTestId('course-title').fill(title);

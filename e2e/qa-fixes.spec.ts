@@ -1,16 +1,12 @@
 import { expect, test } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { loginAs } from './helpers/login';
 
-const PASS = 'Demo2026!';
 const shots = path.join(__dirname, '..', 'docs', 'screenshots', 'qa-fix');
 
-async function login(page, username: string, password = PASS) {
-  await page.goto('/ingresar');
-  await page.getByTestId('login-username').fill(username);
-  await page.getByTestId('login-password').fill(password);
-  await page.getByTestId('login-submit').click();
-  await page.waitForURL('**/mis-cursos', { timeout: 30000 });
+async function login(page: Parameters<typeof loginAs>[0], username: string) {
+  await loginAs(page, username);
   await expect(page.getByTestId('avatar-menu-button')).toBeVisible({ timeout: 15000 });
 }
 

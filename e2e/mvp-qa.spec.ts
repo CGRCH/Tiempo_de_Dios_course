@@ -1,19 +1,15 @@
 import { expect, test } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { DEMO_PASSWORD, loginAs } from './helpers/login';
 
 const API = process.env.E2E_API_URL || 'http://localhost:8000/api';
-const PASS = 'Demo2026!';
 
-async function login(page, username: string, password = PASS) {
-  await page.goto('/ingresar');
-  await page.getByTestId('login-username').fill(username);
-  await page.getByTestId('login-password').fill(password);
-  await page.getByTestId('login-submit').click();
-  await page.waitForURL('**/mis-cursos', { timeout: 15000 });
+async function login(page: Parameters<typeof loginAs>[0], username: string, password = DEMO_PASSWORD) {
+  await loginAs(page, username, password);
 }
 
-async function apiToken(request, username: string, password = PASS) {
+async function apiToken(request, username: string, password = DEMO_PASSWORD) {
   const res = await request.post(`${API}/auth/token/`, {
     data: { username, password },
   });

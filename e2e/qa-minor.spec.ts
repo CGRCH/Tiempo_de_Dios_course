@@ -1,13 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { loginAs } from './helpers/login';
 
-const PASS = 'Demo2026!';
-
-async function login(page, username: string, password = PASS) {
-  await page.goto('/ingresar');
-  await page.getByTestId('login-username').fill(username);
-  await page.getByTestId('login-password').fill(password);
-  await page.getByTestId('login-submit').click();
-  await page.waitForURL('**/mis-cursos', { timeout: 30000 });
+async function login(page: Parameters<typeof loginAs>[0], username: string) {
+  await loginAs(page, username);
 }
 
 test.describe.configure({ timeout: 90_000 });

@@ -54,6 +54,8 @@ export type User = {
   last_name: string;
   initials: string;
   role: string;
+  avatar_url?: string | null;
+  bio?: string;
 };
 
 function authHeaders(token?: string | null): HeadersInit {
