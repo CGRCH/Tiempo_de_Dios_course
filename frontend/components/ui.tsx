@@ -58,7 +58,7 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
   const panel = panelLinkForRole(user?.role);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#e4e0d8] bg-cream dark:bg-[var(--bg)]">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-cream dark:bg-[var(--bg)]">
       <div className="mx-auto flex h-[76px] max-w-[1280px] items-center justify-between gap-4 px-4 md:px-8">
         <Link href="/" className="flex shrink-0 items-center">
           <BrandLogo height={36} priority />
@@ -115,7 +115,7 @@ export function SiteHeader({ active = 'Cursos', compact = false }: { active?: st
       {!compact && mobileNavOpen && (
         <nav
           data-testid="mobile-nav"
-          className="border-t border-[#e4e0d8] px-4 py-4 md:hidden"
+          className="border-t border-[var(--border)] px-4 py-4 md:hidden"
         >
           <ul className="space-y-3 text-[15px] font-medium">
             {links.map((l) => (
@@ -178,9 +178,26 @@ export function SiteFooter() {
         <div>
           <h4 className="mb-3 text-sm uppercase tracking-widest text-white">Ayuda</h4>
           <ul className="space-y-2 text-sm">
-            {['Centro de ayuda', 'Certificados', 'Términos', 'Privacidad'].map((x) => (
-              <li key={x}>{x}</li>
-            ))}
+            <li>
+              <Link href="/ayuda" className="hover:text-white">
+                Centro de ayuda
+              </Link>
+            </li>
+            <li>
+              <Link href="/certificados" className="hover:text-white">
+                Certificados
+              </Link>
+            </li>
+            <li>
+              <Link href="/terminos" className="hover:text-white">
+                Términos
+              </Link>
+            </li>
+            <li>
+              <Link href="/privacidad" className="hover:text-white">
+                Privacidad
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
@@ -251,7 +268,7 @@ export function ProgressBar({
   ...rest
 }: { value: number } & ComponentPropsWithoutRef<'div'>) {
   return (
-    <div className="h-1.5 overflow-hidden rounded-full bg-[#ebe7e0]" {...rest}>
+    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--border)]" {...rest}>
       <div className="h-full bg-ink" style={{ width: `${Math.min(100, value)}%` }} />
     </div>
   );

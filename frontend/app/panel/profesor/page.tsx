@@ -3,6 +3,7 @@
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Headline, Pill, Tag } from '@/components/ui';
 import { API_URL, Course , authHeaders } from '@/lib/api';
+import { normalizeList } from '@/lib/apiErrors';
 import { useAuth } from '@/lib/auth';
 import { useProfesorNav } from '@/lib/useProfesorNav';
 import Link from 'next/link';
@@ -17,11 +18,18 @@ export default function ProfesorPanelPage() {
   useEffect(() => {
     if (!token) return;
     fetch(`${API_URL}/teacher/courses/`, { credentials: 'include', headers: authHeaders(token) })
-      .then((r) => r.json())
-      .then((d) => setCourses(d.results || d));
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setCourses([]);
+          return;
+        }
+        setCourses(normalizeList<Course>(data));
+      });
     fetch(`${API_URL}/teacher/stats/`, { credentials: 'include', headers: authHeaders(token) })
-      .then((r) => r.json())
-      .then(setStats);
+      .then((r) => (r.ok ? r.json() : {}))
+      .then(setStats)
+      .catch(() => setStats({}));
   }, [token]);
 
   const statusTone = (s: string) =>
@@ -74,6 +82,16 @@ export default function ProfesorPanelPage() {
             </tr>
           </thead>
           <tbody>
+            {courses.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                  No tienes cursos todavía.{' '}
+                  <Link href="/panel/profesor/crear" className="font-semibold underline">
+                    Crear curso
+                  </Link>
+                </td>
+              </tr>
+            )}
             {courses.map((c) => (
               <tr key={c.id} className="border-b border-[#f0ede8]">
                 <td className="px-4 py-3.5 font-bold">{c.title}</td>

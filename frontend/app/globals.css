@@ -10,14 +10,16 @@
   --muted: #5c5850;
   --card: #ffffff;
   --footer: #111111;
+  --border: #e4e0d8;
 }
 
 .dark {
   --bg: #121110;
   --ink: #f5f3ef;
-  --muted: #a8a299;
+  --muted: #c9c4bc;
   --card: #1c1a18;
   --footer: #000000;
+  --border: #3a3835;
 }
 
 body {

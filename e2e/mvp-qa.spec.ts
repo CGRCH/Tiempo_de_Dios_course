@@ -184,10 +184,14 @@ test.describe('MVP QA', () => {
     await page.locator('[data-testid^="save-price-"]').first().click();
 
     await page.goto('/panel/admin/roles');
-    await page.locator('[data-testid^="role-select-"]').first().selectOption('Estudiante');
+    const roleSelect = page.locator('[data-testid^="role-select-"]').first();
+    await expect(roleSelect).toBeVisible({ timeout: 30000 });
+    await roleSelect.selectOption('Estudiante');
 
     await page.goto('/panel/admin/configuracion');
-    await page.getByTestId('toggle-teacher-earnings').check();
+    await expect(page.getByTestId('save-settings')).toBeEnabled({ timeout: 15000 });
+    const earningsToggle = page.getByTestId('toggle-teacher-earnings');
+    await earningsToggle.setChecked(true);
     await page.getByTestId('save-settings').click();
 
     await apiSession(request, 'carlos.mendez');

@@ -3,12 +3,13 @@
 import { CourseCover } from '@/components/CourseCover';
 import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader } from '@/components/ui';
 import { firstPreviewLesson } from '@/lib/courseLessons';
-import { API_URL, Course, Lesson, formatCLP , authHeaders } from '@/lib/api';
+import { splitHeadlineTitle, teacherInitials } from '@/lib/courseDisplay';
+import { API_URL, Course, Lesson, formatCLP, authHeaders } from '@/lib/api';
 import { registerPath, loginPath } from '@/lib/authPaths';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -16,22 +17,35 @@ export default function CourseDetailPage() {
   const { token, user } = useAuth();
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
+  const [loadError, setLoadError] = useState('');
   const [openModule, setOpenModule] = useState(0);
   const [checkoutMsg, setCheckoutMsg] = useState('');
   const [enrolled, setEnrolled] = useState(false);
 
-  const loadCourse = () => {
+  const loadCourse = useCallback(() => {
+    setLoadError('');
     fetch(`${API_URL}/courses/${slug}/`, {
-      credentials: token ? 'include' : 'same-origin',
+      credentials: 'include',
       headers: authHeaders(token, false),
     })
-      .then((r) => r.json())
-      .then(setCourse);
-  };
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok || !data?.title) {
+          setCourse(null);
+          setLoadError(typeof data?.detail === 'string' ? data.detail : 'No encontramos este curso.');
+          return;
+        }
+        setCourse(data);
+      })
+      .catch(() => {
+        setCourse(null);
+        setLoadError('No pudimos cargar el curso. Intenta de nuevo.');
+      });
+  }, [slug, token]);
 
   useEffect(() => {
     loadCourse();
-  }, [slug, token]);
+  }, [loadCourse]);
 
   useEffect(() => {
     if (!token) {
@@ -39,13 +53,23 @@ export default function CourseDetailPage() {
       return;
     }
     fetch(`${API_URL}/courses/${slug}/progress/`, {
-      credentials: 'include', headers: authHeaders(token),
+      credentials: 'include',
+      headers: authHeaders(token),
     })
       .then((r) => (r.ok ? r.json() : { enrolled: false }))
       .then((d) => setEnrolled(!!d.enrolled));
   }, [slug, token]);
 
   const previewLesson = useMemo(() => (course ? firstPreviewLesson(course) : null), [course]);
+  const headline = useMemo(() => splitHeadlineTitle(course?.title), [course?.title]);
+  const objectives = useMemo(
+    () => (Array.isArray(course?.learning_objectives) ? course!.learning_objectives! : []),
+    [course?.learning_objectives],
+  );
+  const modules = useMemo(
+    () => (Array.isArray(course?.modules) ? course!.modules! : []),
+    [course?.modules],
+  );
 
   const lessonHref = (l: Lesson) => `/aprender/${slug}/leccion/${l.id}`;
 
@@ -75,10 +99,25 @@ export default function CourseDetailPage() {
   };
 
   const goToLearning = () => {
-    const target = previewLesson || course?.modules?.[0]?.lessons?.[0];
+    const target = previewLesson || modules[0]?.lessons?.[0];
     if (target) router.push(lessonHref(target));
     else router.push('/mis-cursos');
   };
+
+  if (loadError) {
+    return (
+      <>
+        <SiteHeader active="Cursos" />
+        <div className="mx-auto max-w-lg px-4 py-16 text-center">
+          <p className="text-muted">{loadError}</p>
+          <Pill href="/" className="mt-6">
+            Volver al catálogo
+          </Pill>
+        </div>
+        <SiteFooter />
+      </>
+    );
+  }
 
   if (!course) {
     return (
@@ -98,23 +137,24 @@ export default function CourseDetailPage() {
         <div className="mx-auto grid max-w-[1280px] items-start gap-10 lg:grid-cols-[1fr_380px]">
           <div>
             <p className="mb-4 text-sm text-muted">
-              Cursos › {course.category_name}
+              Cursos › {course.category_name || 'General'}
             </p>
             <Headline className="!text-[clamp(2rem,6vw,4.75rem)]">
-              {course.title.split(' ').slice(0, -1).join(' ')}{' '}
-              <span className="serif normal-case">{course.title.split(' ').slice(-1)}</span>
+              {headline.lead}
+              {headline.accent ? (
+                <>
+                  {' '}
+                  <span className="serif normal-case">{headline.accent}</span>
+                </>
+              ) : null}
             </Headline>
             <p className="mt-5 max-w-2xl text-lg text-muted">{course.description}</p>
             <div className="mt-5 flex flex-wrap items-center gap-5 text-[15px]">
               <span className="inline-flex items-center gap-2 font-bold">
-                <span className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#d9d3c7] text-xs">
-                  {course.teacher_name
-                    .split(' ')
-                    .map((w) => w[0])
-                    .join('')
-                    .slice(0, 2)}
+                <span className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#d9d3c7] text-xs dark:bg-[#3a3835]">
+                  {teacherInitials(course.teacher_name)}
                 </span>
-                {course.teacher_name}
+                {course.teacher_name || 'Profesor'}
               </span>
               <span>
                 <span className="text-[#b07a00]">★</span> {course.rating_display} ({course.student_count}{' '}
@@ -123,13 +163,13 @@ export default function CourseDetailPage() {
               <span>{course.duration_label}</span>
             </div>
 
-            {course.learning_objectives && (
+            {objectives.length > 0 && (
               <Card className="mt-10 p-8">
                 <SectionTitle className="!text-[26px]">
                   Lo que <span className="serif normal-case">aprenderás</span>
                 </SectionTitle>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {course.learning_objectives.map((o) => (
+                  {objectives.map((o) => (
                     <div key={o}>✓ &nbsp;{o}</div>
                   ))}
                 </div>
@@ -138,12 +178,12 @@ export default function CourseDetailPage() {
 
             <SectionTitle className="mt-11 !text-[26px]">Temario</SectionTitle>
             <p className="mb-4 text-muted">
-              {course.modules?.length || 0} módulos · {course.lesson_count || 0} lecciones ·{' '}
+              {modules.length} módulos · {course.lesson_count || 0} lecciones ·{' '}
               {course.duration_label}
             </p>
             <Card className="overflow-hidden">
-              {course.modules?.map((mod, idx) => (
-                <div key={mod.id} className="border-b border-[#eee] px-5 py-4 last:border-0">
+              {modules.map((mod, idx) => (
+                <div key={mod.id} className="border-b border-[var(--border)] px-5 py-4 last:border-0">
                   <button
                     type="button"
                     className="flex w-full items-center justify-between text-left font-bold"
@@ -153,12 +193,12 @@ export default function CourseDetailPage() {
                       {openModule === idx ? '−' : '+'} &nbsp;Módulo {idx + 1}: {mod.title}
                     </span>
                     <span className="text-sm font-medium text-muted">
-                      {mod.lessons.length} lecciones
+                      {(mod.lessons || []).length} lecciones
                     </span>
                   </button>
                   {openModule === idx && (
-                    <div className="mt-3 space-y-2 border-t border-[#f0ede8] pt-3 text-[15px]">
-                      {mod.lessons.map((l) =>
+                    <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3 text-[15px]">
+                      {(mod.lessons || []).map((l) =>
                         canOpenLesson(l) ? (
                           <Link
                             key={l.id}
@@ -193,7 +233,7 @@ export default function CourseDetailPage() {
             <Card className="overflow-hidden">
               <div className="relative flex h-[200px] items-center justify-center">
                 <CourseCover course={course} className="absolute inset-0 h-full w-full object-cover" />
-                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white text-2xl">
+                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white text-2xl dark:bg-[var(--card)]">
                   ▶
                 </span>
               </div>

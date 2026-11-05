@@ -2,7 +2,7 @@
 
 import { AuthBrandMark } from '@/components/BrandLogo';
 import { Card, SiteFooter, SiteHeader } from '@/components/ui';
-import { loginPath, registerPath, safeNextPath } from '@/lib/authPaths';
+import { loginPath, registerPath, postAuthPath } from '@/lib/authPaths';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -12,7 +12,7 @@ function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = safeNextPath(searchParams.get('next'));
+  const nextParam = searchParams.get('next');
   const [username, setUsername] = useState('camila.m');
   const [password, setPassword] = useState('Demo2026!');
   const [error, setError] = useState('');
@@ -20,8 +20,8 @@ function LoginForm() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(username, password);
-      router.push(next);
+      const user = await login(username, password);
+      router.push(postAuthPath(user.role, nextParam));
     } catch {
       setError('No pudimos iniciar sesión. Revisa tus datos.');
     }

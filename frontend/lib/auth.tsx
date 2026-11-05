@@ -5,10 +5,11 @@ import { API_URL, User, apiGet, apiPost } from './api';
 
 type AuthCtx = {
   user: User | null;
+  authReady: boolean;
   /** @deprecated use user / isAuthenticated — kept for legacy call sites during cookie migration */
   token: string | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -17,6 +18,7 @@ const Ctx = createContext<AuthCtx | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -28,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshUser();
+    refreshUser().finally(() => setAuthReady(true));
   }, [refreshUser]);
 
   const login = async (username: string, password: string) => {
@@ -39,7 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ username, password }),
     });
     if (!res.ok) throw new Error('Credenciales inválidas');
-    await refreshUser();
+    const me = await apiGet<User>('/auth/me/');
+    setUser(me);
+    return me;
   };
 
   const logout = async () => {
@@ -57,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <Ctx.Provider
       value={{
         user,
+        authReady,
         token: isAuthenticated ? 'cookie' : null,
         isAuthenticated,
         login,

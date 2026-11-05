@@ -2,7 +2,7 @@
 
 import { AuthBrandMark } from '@/components/BrandLogo';
 import { Card, SiteFooter, SiteHeader } from '@/components/ui';
-import { loginPath, safeNextPath } from '@/lib/authPaths';
+import { loginPath, postAuthPath } from '@/lib/authPaths';
 import { registerUser, useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -11,7 +11,7 @@ import { Suspense, useState } from 'react';
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = safeNextPath(searchParams.get('next'));
+  const nextParam = searchParams.get('next');
   const { login } = useAuth();
   const [form, setForm] = useState({
     username: '',
@@ -29,8 +29,8 @@ function RegisterForm() {
     setError('');
     try {
       await registerUser(form);
-      await login(form.username, form.password);
-      router.push(next);
+      const user = await login(form.username, form.password);
+      router.push(postAuthPath(user.role, nextParam));
     } catch {
       setError('No se pudo crear la cuenta.');
     } finally {

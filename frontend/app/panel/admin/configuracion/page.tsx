@@ -43,24 +43,29 @@ export default function AdminConfigPage() {
     <PanelShell roleTag="Super admin" nav={nav} active="Configuración">
       <h1 className="text-3xl font-black uppercase">Configuración</h1>
       <Card className="mt-6 p-6">
-        <label className="flex items-center gap-3">
-          <input
-            data-testid="toggle-teacher-earnings"
-            type="checkbox"
-            checked={visible}
-            onChange={(e) => setVisible(e.target.checked)}
-          />
-          Mostrar ingresos a profesores
-        </label>
-        <button
-          data-testid="save-settings"
-          type="button"
-          onClick={save}
-          disabled={!loaded}
-          className="mt-4 rounded-full bg-ink px-4 py-2 text-white disabled:opacity-50"
-        >
-          Guardar
-        </button>
+        {!loaded ? (
+          <p className="text-sm text-muted">Cargando…</p>
+        ) : (
+          <>
+            <label className="flex items-center gap-3">
+              <input
+                data-testid="toggle-teacher-earnings"
+                type="checkbox"
+                checked={visible}
+                onChange={(e) => setVisible(e.target.checked)}
+              />
+              Mostrar ingresos a profesores
+            </label>
+            <button
+              data-testid="save-settings"
+              type="button"
+              onClick={save}
+              className="mt-4 rounded-full bg-ink px-4 py-2 text-white"
+            >
+              Guardar
+            </button>
+          </>
+        )}
         {savedMsg && (
           <p className="mt-3 text-sm text-[#1d5e2e]" data-testid="settings-saved">
             {savedMsg}
