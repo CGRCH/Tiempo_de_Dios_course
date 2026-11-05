@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useProfesorNav } from '@/lib/useProfesorNav';
 import { useEffect, useState } from 'react';
@@ -25,7 +25,7 @@ export default function ProfesorPreguntasPage() {
 
   const load = () => {
     if (!token) return;
-    fetch(`${API_URL}/teacher/questions/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/teacher/questions/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setRows(Array.isArray(d) ? d : d.results || []));
   };
@@ -39,7 +39,7 @@ export default function ProfesorPreguntasPage() {
     if (!answer) return;
     await fetch(`${API_URL}/teacher/questions/${id}/reply/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ answer }),
     });
     load();

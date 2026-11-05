@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Headline, Pill, Tag } from '@/components/ui';
-import { API_URL, formatCLP } from '@/lib/api';
+import { API_URL, formatCLP , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -37,14 +37,14 @@ export default function AdminPanelPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/admin/revenue/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/revenue/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then(setData);
   }, [token]);
 
   const exportCsv = async () => {
     const r = await fetch(`${API_URL}/admin/transactions/export/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include', headers: authHeaders(token),
     });
     const text = await r.text();
     const blob = new Blob([text], { type: 'text/csv' });

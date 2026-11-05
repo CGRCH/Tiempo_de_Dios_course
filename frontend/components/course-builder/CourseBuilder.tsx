@@ -3,7 +3,7 @@
 import { Dropzone } from '@/components/Dropzone';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { Card, Pill, Tag } from '@/components/ui';
-import { API_URL, courseCoverUrl, formatDuration } from '@/lib/api';
+import { API_URL, authHeaders, courseCoverUrl, formatDuration } from '@/lib/api';
 import clsx from 'clsx';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -73,10 +73,8 @@ const VIDEO_BADGE: Record<string, string> = {
   failed: 'Error',
 };
 
-function authHeaders(token: string, json = true): HeadersInit {
-  const h: HeadersInit = { Authorization: `Bearer ${token}` };
-  if (json) h['Content-Type'] = 'application/json';
-  return h;
+function apiInit(token: string | null, json = true): RequestInit {
+  return { credentials: 'include', headers: authHeaders(token, json) };
 }
 
 export function CourseBuilder({
@@ -106,9 +104,7 @@ export function CourseBuilder({
 
   const load = useCallback(async () => {
     if (!token) return;
-    const r = await fetch(`${API_URL}/teacher/courses/${slug}/`, {
-      headers: authHeaders(token, false),
-    });
+    const r = await fetch(`${API_URL}/teacher/courses/${slug}/`, apiInit(token, false));
     if (!r.ok) return;
     setCourse(await r.json());
   }, [slug, token]);
@@ -136,9 +132,7 @@ export function CourseBuilder({
     if (!lessonModal || !token) return;
     if (lessonModal.video_status === 'ready' || lessonModal.video_status === 'failed') return;
     const t = setInterval(async () => {
-      const r = await fetch(`${API_URL}/lessons/${lessonModal.id}/`, {
-        headers: authHeaders(token, false),
-      });
+      const r = await fetch(`${API_URL}/lessons/${lessonModal.id}/`, apiInit(token, false));
       if (!r.ok) return;
       const d = await r.json();
       setLessonModal((prev) => (prev ? { ...prev, ...d } : prev));
@@ -156,7 +150,7 @@ export function CourseBuilder({
     const isForm = body instanceof FormData;
     const r = await fetch(`${API_URL}/teacher/courses/${slug}/`, {
       method: 'PATCH',
-      headers: isForm ? { Authorization: `Bearer ${token}` } : authHeaders(token),
+      ...apiInit(token, !(body instanceof FormData)),
       body: isForm ? body : JSON.stringify(body),
     });
     setSaving(false);
@@ -186,7 +180,7 @@ export function CourseBuilder({
       fd.append('cover', coverFile);
       const r = await fetch(`${API_URL}/teacher/courses/${slug}/`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+        ...apiInit(token, false),
         body: fd,
       });
       if (r.ok) {
@@ -201,7 +195,7 @@ export function CourseBuilder({
     if (!token || !editable) return;
     const r = await fetch(`${API_URL}/teacher/courses/${slug}/modules/`, {
       method: 'POST',
-      headers: authHeaders(token),
+      ...apiInit(token),
       body: JSON.stringify({ title: `Módulo ${(course?.modules.length || 0) + 1}` }),
     });
     const data = await r.json();
@@ -216,7 +210,7 @@ export function CourseBuilder({
     if (!token || !editable) return;
     const r = await fetch(`${API_URL}/teacher/modules/${moduleId}/lessons/`, {
       method: 'POST',
-      headers: authHeaders(token),
+      ...apiInit(token),
       body: JSON.stringify({ title: 'Nueva lección', lesson_type: 'video', duration_seconds: 300 }),
     });
     const data = await r.json();
@@ -247,7 +241,7 @@ export function CourseBuilder({
     if (!token || !lessonModal) return;
     await fetch(`${API_URL}/teacher/lessons/${lessonModal.id}/`, {
       method: 'PATCH',
-      headers: authHeaders(token),
+      ...apiInit(token),
       body: JSON.stringify({
         title: lessonModal.title,
         description: lessonModal.description,
@@ -266,8 +260,8 @@ export function CourseBuilder({
     setUploadPhase('uploading');
     setUploadPct(0);
     const xhr = new XMLHttpRequest();
+    xhr.withCredentials = true;
     xhr.open('POST', `${API_URL}/teacher/lessons/${lessonModal.id}/video/`);
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) setUploadPct(Math.round((e.loaded / e.total) * 100));
     };
@@ -298,7 +292,7 @@ export function CourseBuilder({
     if (!token) return;
     const r = await fetch(`${API_URL}/teacher/courses/${slug}/submit-review/`, {
       method: 'POST',
-      headers: authHeaders(token),
+      ...apiInit(token),
     });
     const data = await r.json();
     if (r.ok) {
@@ -501,14 +495,14 @@ export function CourseBuilder({
                       if (!editable) return;
                       await fetch(`${API_URL}/teacher/modules/${mod.id}/`, {
                         method: 'PATCH',
-                        headers: authHeaders(token!),
+                        ...apiInit(token!),
                         body: JSON.stringify({ title: mod.title }),
                       });
                     }}
                   />
                   <div className="flex flex-wrap gap-1">
-                    <button type="button" disabled={!editable || mi === 0} className="rounded border px-2 py-1 text-xs" aria-label="Subir módulo" onClick={() => fetch(`${API_URL}/teacher/modules/${mod.id}/move/`, { method: 'POST', headers: authHeaders(token!), body: JSON.stringify({ direction: 'up' }) }).then(load)}>↑</button>
-                    <button type="button" disabled={!editable || mi === course.modules.length - 1} className="rounded border px-2 py-1 text-xs" aria-label="Bajar módulo" onClick={() => fetch(`${API_URL}/teacher/modules/${mod.id}/move/`, { method: 'POST', headers: authHeaders(token!), body: JSON.stringify({ direction: 'down' }) }).then(load)}>↓</button>
+                    <button type="button" disabled={!editable || mi === 0} className="rounded border px-2 py-1 text-xs" aria-label="Subir módulo" onClick={() => fetch(`${API_URL}/teacher/modules/${mod.id}/move/`, { method: 'POST', ...apiInit(token!), body: JSON.stringify({ direction: 'up' }) }).then(load)}>↑</button>
+                    <button type="button" disabled={!editable || mi === course.modules.length - 1} className="rounded border px-2 py-1 text-xs" aria-label="Bajar módulo" onClick={() => fetch(`${API_URL}/teacher/modules/${mod.id}/move/`, { method: 'POST', ...apiInit(token!), body: JSON.stringify({ direction: 'down' }) }).then(load)}>↓</button>
                     <button
                       type="button"
                       disabled={!editable}
@@ -517,7 +511,7 @@ export function CourseBuilder({
                         if (!confirm('¿Eliminar módulo y sus lecciones?')) return;
                         await fetch(`${API_URL}/teacher/modules/${mod.id}/`, {
                           method: 'DELETE',
-                          headers: authHeaders(token!, false),
+                          ...apiInit(token!, false),
                         });
                         load();
                       }}
@@ -545,8 +539,8 @@ export function CourseBuilder({
                         <Tag tone={lesson.video_status === 'ready' ? 'ok' : lesson.video_status === 'failed' ? 'red' : 'neutral'}>
                           {VIDEO_BADGE[lesson.video_status] || lesson.video_status}
                         </Tag>
-                        <button type="button" disabled={!editable || li === 0} className="rounded border px-1" onClick={() => fetch(`${API_URL}/teacher/lessons/${lesson.id}/move/`, { method: 'POST', headers: authHeaders(token!), body: JSON.stringify({ direction: 'up' }) }).then(load)}>↑</button>
-                        <button type="button" disabled={!editable || li === mod.lessons.length - 1} className="rounded border px-1" onClick={() => fetch(`${API_URL}/teacher/lessons/${lesson.id}/move/`, { method: 'POST', headers: authHeaders(token!), body: JSON.stringify({ direction: 'down' }) }).then(load)}>↓</button>
+                        <button type="button" disabled={!editable || li === 0} className="rounded border px-1" onClick={() => fetch(`${API_URL}/teacher/lessons/${lesson.id}/move/`, { method: 'POST', ...apiInit(token!), body: JSON.stringify({ direction: 'up' }) }).then(load)}>↑</button>
+                        <button type="button" disabled={!editable || li === mod.lessons.length - 1} className="rounded border px-1" onClick={() => fetch(`${API_URL}/teacher/lessons/${lesson.id}/move/`, { method: 'POST', ...apiInit(token!), body: JSON.stringify({ direction: 'down' }) }).then(load)}>↓</button>
                       </div>
                     </li>
                   ))}

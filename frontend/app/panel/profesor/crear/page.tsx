@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -28,7 +28,7 @@ export default function CrearCursoPage() {
     }
     const res = await fetch(`${API_URL}/teacher/courses/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({
         title,
         description: 'Curso creado en prueba E2E',

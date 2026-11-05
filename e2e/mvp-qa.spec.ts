@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { DEMO_PASSWORD, loginAs } from './helpers/login';
+import { apiLogin } from './helpers/api';
 
 const API = process.env.E2E_API_URL || 'http://localhost:8000/api';
 
@@ -9,13 +10,8 @@ async function login(page: Parameters<typeof loginAs>[0], username: string, pass
   await loginAs(page, username, password);
 }
 
-async function apiToken(request, username: string, password = DEMO_PASSWORD) {
-  const res = await request.post(`${API}/auth/token/`, {
-    data: { username, password },
-  });
-  expect(res.ok()).toBeTruthy();
-  const data = await res.json();
-  return data.access as string;
+async function apiSession(request: Parameters<typeof apiLogin>[0], username: string, password = DEMO_PASSWORD) {
+  await apiLogin(request, username, password);
 }
 
 test.describe('MVP QA', () => {
@@ -31,12 +27,13 @@ test.describe('MVP QA', () => {
     await page.getByTestId('register-first_name').fill('QA');
     await page.getByTestId('register-last_name').fill('Alumno');
     await page.getByTestId('register-submit').click();
-    await page.waitForURL('**/ingresar');
-
-    await login(page, uid, 'Demo2026!QA');
+    await page.waitForURL('**/mis-cursos', { timeout: 30000 });
 
     await page.goto('/');
-    await page.getByTestId('catalog-search').fill('Fundamentos');
+    await expect(page.getByTestId('course-count-label')).toBeVisible({ timeout: 30000 });
+    const search = page.getByTestId('catalog-search');
+    await search.click();
+    await search.fill('Fundamentos');
     await page.getByTestId('filter-Fundamentos').click();
     await expect(page.locator('text=Fundamentos de la Fe').first()).toBeVisible();
 
@@ -44,17 +41,14 @@ test.describe('MVP QA', () => {
     await page.getByTestId('enroll-button').click();
     await expect(page.getByTestId('enroll-message')).toContainText(/insc/i);
 
-    const token = await apiToken(request, uid, 'Demo2026!QA');
-    const courseRes = await request.get(`${API}/courses/fundamentos-de-la-fe/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await apiSession(request, uid, 'Demo2026!QA');
+    const courseRes = await request.get(`${API}/courses/fundamentos-de-la-fe/`);
     const course = await courseRes.json();
     const lessons = course.modules.flatMap((m: { lessons: { id: number }[] }) => m.lessons);
     const first = lessons[0];
 
     for (const l of lessons) {
       await request.post(`${API}/lessons/${l.id}/progress/`, {
-        headers: { Authorization: `Bearer ${token}` },
         data: { completed: true, last_position_seconds: 60 },
       });
     }
@@ -76,23 +70,20 @@ test.describe('MVP QA', () => {
 
     await page.goto('/cursos/liderazgo-con-proposito');
     await page.getByTestId('enroll-button').click();
-    await expect(page.getByTestId('enroll-message')).toContainText(/inscri/i);
+    await page.waitForURL('**/checkout/**', { timeout: 15000 });
+    await page.getByTestId('checkout-confirm').click();
+    await expect(page.getByTestId('checkout-message')).toContainText(/inscri/i);
   });
 
   test('Profesor: crear curso, subir video, transcodificar, enviar revisión, ver estudiantes', async ({
     page,
     request,
   }) => {
-    await expect
-      .poll(async () => (await request.get(`${API}/courses/`)).status(), { timeout: 60000 })
-      .toBe(200);
-
     await login(page, 'f.rojas');
-    const profToken = await apiToken(request, 'f.rojas');
+    await apiSession(request, 'f.rojas');
     const catsBody = await (await request.get(`${API}/categories/`)).json();
     const category = (catsBody.results || catsBody)[0].id;
     const courseRes = await request.post(`${API}/teacher/courses/`, {
-      headers: { Authorization: `Bearer ${profToken}` },
       data: {
         title: `Curso E2E ${Date.now()}`,
         description: 'Curso QA',
@@ -109,12 +100,10 @@ test.describe('MVP QA', () => {
     await expect(page.getByTestId('create-course-form')).toBeVisible();
 
     const modRes = await request.post(`${API}/teacher/courses/${slug}/modules/`, {
-      headers: { Authorization: `Bearer ${profToken}` },
       data: { title: 'Modulo QA' },
     });
     const mod = await modRes.json();
     const lessonRes = await request.post(`${API}/teacher/modules/${mod.id}/lessons/`, {
-      headers: { Authorization: `Bearer ${profToken}` },
       data: { title: 'Leccion QA', duration_seconds: 5, is_preview: true },
     });
     const lesson = await lessonRes.json();
@@ -122,7 +111,6 @@ test.describe('MVP QA', () => {
     const fixture = path.join(__dirname, 'fixtures', 'sample.mp4');
     const videoBytes = fs.readFileSync(fixture);
     await request.post(`${API}/teacher/lessons/${lesson.id}/video/`, {
-      headers: { Authorization: `Bearer ${profToken}` },
       multipart: {
         video: {
           name: 'sample.mp4',
@@ -135,15 +123,15 @@ test.describe('MVP QA', () => {
 
     await expect
       .poll(async () => {
-        const r = await request.get(`${API}/lessons/${lesson.id}/`, {
-          headers: { Authorization: `Bearer ${profToken}` },
-        });
+        const r = await request.get(`${API}/lessons/${lesson.id}/`);
         const d = await r.json();
         return d.video_status as string;
       }, { timeout: 90000 })
       .toMatch(/ready/i);
 
-    await page.goto(`/panel/profesor/cursos/${slug}`);
+    await page.goto(`/panel/profesor/cursos/${slug}?tab=review`);
+    await expect(page.getByTestId('submit-review')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('submit-review')).toBeEnabled({ timeout: 30000 });
     await page.getByTestId('submit-review').click();
     await page.goto('/panel/profesor/estudiantes');
     await expect(page.getByTestId('teacher-students-table')).toBeVisible();
@@ -153,10 +141,8 @@ test.describe('MVP QA', () => {
     page,
     request,
   }) => {
-    const token = await apiToken(request, 'marta.ibanez');
-    const courses = await request.get(`${API}/courses/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await apiSession(request, 'marta.ibanez');
+    const courses = await request.get(`${API}/courses/`);
     const body = await courses.json();
     const list = body.results || body;
     for (const c of list) {
@@ -167,11 +153,10 @@ test.describe('MVP QA', () => {
     await page.goto('/panel/administracion');
     await expect(page.getByTestId('support-dashboard')).toBeAttached();
 
-    const pending = await request.get(`${API}/admin/courses/pending/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const pending = await request.get(`${API}/admin/courses/pending/`);
     const pendingList = await pending.json();
-    const item = (pendingList.results || pendingList)[0];
+    const pendingCourses = pendingList.results || pendingList;
+    const item = pendingCourses.find((c: { slug?: string }) => c.slug && c.slug !== 'cartas-de-pablo-ii');
     if (item?.slug) {
       await page.getByTestId(`approve-${item.slug}`).click();
     }
@@ -195,7 +180,8 @@ test.describe('MVP QA', () => {
     expect(download.suggestedFilename()).toContain('.csv');
 
     await page.goto('/panel/admin/cursos');
-    await page.getByTestId('set-price-romanos').click();
+    await expect(page.getByTestId('admin-price-editor')).toBeVisible({ timeout: 30000 });
+    await page.locator('[data-testid^="save-price-"]').first().click();
 
     await page.goto('/panel/admin/roles');
     await page.locator('[data-testid^="role-select-"]').first().selectOption('Estudiante');
@@ -204,10 +190,8 @@ test.describe('MVP QA', () => {
     await page.getByTestId('toggle-teacher-earnings').check();
     await page.getByTestId('save-settings').click();
 
-    const adminToken = await apiToken(request, 'carlos.mendez');
-    const settings = await request.get(`${API}/admin/settings/`, {
-      headers: { Authorization: `Bearer ${adminToken}` },
-    });
+    await apiSession(request, 'carlos.mendez');
+    const settings = await request.get(`${API}/admin/settings/`);
     expect(settings.ok()).toBeTruthy();
   });
 });

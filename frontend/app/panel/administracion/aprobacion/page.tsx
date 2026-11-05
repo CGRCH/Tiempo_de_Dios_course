@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Pill } from '@/components/ui';
-import { API_URL, Course } from '@/lib/api';
+import { API_URL, Course , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -20,7 +20,7 @@ export default function AdministracionAprobacionPage() {
 
   const load = () => {
     if (!token) return;
-    fetch(`${API_URL}/admin/courses/pending/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/courses/pending/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setPending(d.results || d));
   };
@@ -32,7 +32,7 @@ export default function AdministracionAprobacionPage() {
   const approve = async (slug: string) => {
     await fetch(`${API_URL}/admin/courses/${slug}/approve/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ action: 'approve' }),
     });
     load();

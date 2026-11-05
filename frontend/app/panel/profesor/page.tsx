@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Headline, Pill, Tag } from '@/components/ui';
-import { API_URL, Course } from '@/lib/api';
+import { API_URL, Course , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useProfesorNav } from '@/lib/useProfesorNav';
 import Link from 'next/link';
@@ -16,10 +16,10 @@ export default function ProfesorPanelPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/teacher/courses/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/teacher/courses/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setCourses(d.results || d));
-    fetch(`${API_URL}/teacher/stats/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/teacher/stats/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then(setStats);
   }, [token]);

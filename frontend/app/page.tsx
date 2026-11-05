@@ -3,7 +3,7 @@
 import { CourseCover } from '@/components/CourseCover';
 import { CourseCard } from '@/components/CourseCard';
 import { Card, Headline, Pill, ProgressBar, SectionTitle, SiteFooter, SiteHeader } from '@/components/ui';
-import { API_URL, Course } from '@/lib/api';
+import { API_URL, Course , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -59,7 +59,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!token) return;
     fetch(`${API_URL}/me/continue/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include', headers: authHeaders(token),
     })
       .then((r) => (r.ok ? r.json() : null))
       .then(setContinueCourse)

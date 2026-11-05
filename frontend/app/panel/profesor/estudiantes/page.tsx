@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useProfesorNav } from '@/lib/useProfesorNav';
 import { useEffect, useState } from 'react';
@@ -14,7 +14,7 @@ export default function TeacherStudentsPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/teacher/students/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/teacher/students/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then(setRows);
   }, [token]);

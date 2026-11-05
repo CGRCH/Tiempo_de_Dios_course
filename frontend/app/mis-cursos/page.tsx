@@ -2,7 +2,7 @@
 
 import { CourseCard } from '@/components/CourseCard';
 import { SiteFooter, SiteHeader, Card, Pill } from '@/components/ui';
-import { API_URL, Course } from '@/lib/api';
+import { API_URL, Course , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -14,7 +14,7 @@ export default function MisCursosPage() {
   useEffect(() => {
     if (!token) return;
     fetch(`${API_URL}/me/enrollments/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include', headers: authHeaders(token),
     })
       .then((r) => r.json())
       .then((data) => setItems(data.results || data));

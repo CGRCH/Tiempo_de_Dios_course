@@ -23,11 +23,9 @@ class CertificateSerializer(serializers.ModelSerializer):
     def get_pdf_url(self, obj):
         if not obj.pdf:
             return None
-        request = self.context.get("request")
-        url = obj.pdf.url
-        if request:
-            return request.build_absolute_uri(url)
-        return url
+        from courses.video_signing import sign_media_path
+
+        return sign_media_path(obj.pdf.name, obj.enrollment.user_id)
 
 
 class MyCertificatesView(generics.ListAPIView):

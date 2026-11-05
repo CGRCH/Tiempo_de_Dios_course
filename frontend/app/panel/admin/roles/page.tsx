@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -20,7 +20,7 @@ export default function AdminRolesPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/admin/users/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/users/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setUsers(d.results || d));
   }, [token]);
@@ -28,7 +28,7 @@ export default function AdminRolesPage() {
   const assign = async (id: number, role: string) => {
     await fetch(`${API_URL}/admin/users/${id}/role/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ role }),
     });
   };

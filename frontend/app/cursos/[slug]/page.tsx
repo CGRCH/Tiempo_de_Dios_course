@@ -3,7 +3,7 @@
 import { CourseCover } from '@/components/CourseCover';
 import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader } from '@/components/ui';
 import { firstPreviewLesson } from '@/lib/courseLessons';
-import { API_URL, Course, Lesson, formatCLP } from '@/lib/api';
+import { API_URL, Course, Lesson, formatCLP , authHeaders } from '@/lib/api';
 import { registerPath, loginPath } from '@/lib/authPaths';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
@@ -22,7 +22,8 @@ export default function CourseDetailPage() {
 
   const loadCourse = () => {
     fetch(`${API_URL}/courses/${slug}/`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: token ? 'include' : 'same-origin',
+      headers: authHeaders(token, false),
     })
       .then((r) => r.json())
       .then(setCourse);
@@ -38,7 +39,7 @@ export default function CourseDetailPage() {
       return;
     }
     fetch(`${API_URL}/courses/${slug}/progress/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include', headers: authHeaders(token),
     })
       .then((r) => (r.ok ? r.json() : { enrolled: false }))
       .then((d) => setEnrolled(!!d.enrolled));
@@ -63,10 +64,8 @@ export default function CourseDetailPage() {
     }
     const res = await fetch(`${API_URL}/courses/${slug}/enroll/`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      headers: authHeaders(token),
       body: JSON.stringify({ method: 'webpay' }),
     });
     if (res.ok) {

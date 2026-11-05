@@ -5,7 +5,9 @@ import { API_URL, User, apiGet, apiPost } from './api';
 
 type AuthCtx = {
   user: User | null;
+  /** @deprecated use user / isAuthenticated — kept for legacy call sites during cookie migration */
   token: string | null;
+  isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -14,23 +16,16 @@ type AuthCtx = {
 const Ctx = createContext<AuthCtx | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('td_token') : null,
-  );
   const [user, setUser] = useState<User | null>(null);
 
   const refreshUser = useCallback(async () => {
-    if (!token) {
-      setUser(null);
-      return;
-    }
     try {
-      const me = await apiGet<User>('/auth/me/', token);
+      const me = await apiGet<User>('/auth/me/');
       setUser(me);
     } catch {
       setUser(null);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     refreshUser();
@@ -39,25 +34,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string) => {
     const res = await fetch(`${API_URL}/auth/token/`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
     if (!res.ok) throw new Error('Credenciales inválidas');
-    const data = await res.json();
-    localStorage.setItem('td_token', data.access);
-    localStorage.setItem('td_refresh', data.refresh);
-    setToken(data.access);
+    await refreshUser();
   };
 
-  const logout = () => {
-    localStorage.removeItem('td_token');
-    localStorage.removeItem('td_refresh');
-    setToken(null);
+  const logout = async () => {
+    try {
+      await fetch(`${API_URL}/auth/logout/`, { method: 'POST', credentials: 'include' });
+    } catch {
+      /* ignore */
+    }
     setUser(null);
   };
 
+  const isAuthenticated = !!user;
+
   return (
-    <Ctx.Provider value={{ user, token, login, logout, refreshUser }}>
+    <Ctx.Provider
+      value={{
+        user,
+        token: isAuthenticated ? 'cookie' : null,
+        isAuthenticated,
+        login,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

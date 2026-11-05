@@ -3,7 +3,7 @@
 import { Dropzone } from '@/components/Dropzone';
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL, absoluteMediaUrl } from '@/lib/api';
+import { API_URL, absoluteMediaUrl , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useProfesorNav } from '@/lib/useProfesorNav';
 import { useMemo, useState } from 'react';
@@ -26,7 +26,7 @@ export default function ProfesorPerfilPage() {
     try {
       const r = await fetch(`${API_URL}/auth/me/`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include', headers: authHeaders(token),
         body: fd,
       });
       if (!r.ok) {

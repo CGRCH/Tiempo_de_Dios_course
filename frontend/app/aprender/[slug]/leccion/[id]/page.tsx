@@ -3,7 +3,7 @@
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { Card, Pill, ProgressBar, SectionTitle, SiteFooter, SiteHeader, ThemeToggle } from '@/components/ui';
 import { findLessonModule, flatLessons } from '@/lib/courseLessons';
-import { API_URL, Course, Lesson, formatDuration } from '@/lib/api';
+import { API_URL, Course, Lesson, formatDuration , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -31,7 +31,7 @@ export default function LessonPlayerPage() {
   const loadProgress = async () => {
     if (!token) return;
     const r = await fetch(`${API_URL}/courses/${slug}/progress/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include', headers: authHeaders(token),
     });
     if (!r.ok) return;
     const d = await r.json();
@@ -45,14 +45,14 @@ export default function LessonPlayerPage() {
 
     (async () => {
       const lessonRes = await fetch(`${API_URL}/lessons/${lessonId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include', headers: authHeaders(token),
       });
       if (!cancelled && lessonRes.ok) {
         setLesson(await lessonRes.json());
       }
 
       const courseRes = await fetch(`${API_URL}/courses/${slug}/`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include', headers: authHeaders(token),
       });
       if (!cancelled && courseRes.ok) {
         const c = await courseRes.json();
@@ -62,7 +62,7 @@ export default function LessonPlayerPage() {
       }
 
       const notesRes = await fetch(`${API_URL}/lessons/${lessonId}/notes/`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include', headers: authHeaders(token),
       });
       if (!cancelled && notesRes.ok) {
         const d = await notesRes.json();
@@ -81,7 +81,7 @@ export default function LessonPlayerPage() {
     if (!token) return;
     const res = await fetch(`${API_URL}/lessons/${lessonId}/progress/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ completed: true, last_position_seconds: currentTime }),
     });
     if (res.ok) {
@@ -97,7 +97,7 @@ export default function LessonPlayerPage() {
     for (const l of lessons) {
       await fetch(`${API_URL}/lessons/${l.id}/progress/`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include', headers: authHeaders(token),
         body: JSON.stringify({ completed: true, last_position_seconds: l.duration_seconds }),
       });
     }
@@ -109,10 +109,8 @@ export default function LessonPlayerPage() {
     if (!token || !noteText.trim()) return;
     const res = await fetch(`${API_URL}/lessons/${lessonId}/notes/`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      headers: authHeaders(token),
       body: JSON.stringify({ timestamp_seconds: currentTime, text: noteText }),
     });
     if (!res.ok) return;

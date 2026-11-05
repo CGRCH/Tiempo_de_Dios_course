@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Tag } from '@/components/ui';
-import { API_URL, formatCLP } from '@/lib/api';
+import { API_URL, formatCLP , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -29,7 +29,7 @@ export default function AdminTransaccionesPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/admin/transactions/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/transactions/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setRows(d.results || d));
   }, [token]);

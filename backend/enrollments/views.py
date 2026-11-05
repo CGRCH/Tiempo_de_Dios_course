@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -91,8 +92,13 @@ class ConfirmEnrollmentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        tx_id = request.data.get("transaction_id")
-        enrollment = CheckoutService().complete(request.user, tx_id)
+        try:
+            enrollment = CheckoutService().complete(request.user, request.data.get("transaction_id"))
+        except ValidationError as exc:
+            detail = exc.detail
+            if isinstance(detail, list):
+                detail = detail[0]
+            return Response({"detail": str(detail)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(EnrollmentSerializer(enrollment, context={"request": request}).data)
 
 

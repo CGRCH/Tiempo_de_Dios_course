@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, SiteFooter, SiteHeader } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -16,7 +16,7 @@ export default function AyudaPage() {
 
   const load = () => {
     if (!token) return;
-    fetch(`${API_URL}/me/tickets/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/me/tickets/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setTickets(d.results || d));
   };
@@ -28,7 +28,7 @@ export default function AyudaPage() {
     if (!token) return;
     await fetch(`${API_URL}/me/tickets/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ subject, body, priority: 'medium' }),
     });
     setSubject('');

@@ -1,7 +1,9 @@
 import uuid
 from abc import ABC, abstractmethod
 
+from django.conf import settings
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from payments.models import Transaction, TransactionStatus
 
@@ -43,10 +45,23 @@ class CheckoutService:
         return payload
 
     def complete(self, user, transaction_id: str):
+        """
+        Demo-only confirmation when ALLOW_SIMULATED_PAYMENTS is enabled.
+        Production must confirm payments via the provider webhook, not client POST.
+        """
         from enrollments.models import Enrollment
         from enrollments.views import _bootstrap_progress
 
-        tx = Transaction.objects.get(external_id=transaction_id, user=user)
+        if not settings.ALLOW_SIMULATED_PAYMENTS:
+            raise ValidationError("La confirmación simulada de pago no está habilitada.")
+        if not transaction_id:
+            raise ValidationError("transaction_id es obligatorio.")
+        try:
+            tx = Transaction.objects.get(external_id=transaction_id, user=user)
+        except Transaction.DoesNotExist:
+            raise ValidationError("Transacción no encontrada.")
+        if tx.status != TransactionStatus.PENDING:
+            raise ValidationError("La transacción no está pendiente de pago.")
         tx.status = TransactionStatus.PAID
         tx.paid_at = timezone.now()
         tx.save(update_fields=["status", "paid_at"])

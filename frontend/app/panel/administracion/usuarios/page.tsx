@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Tag } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -29,7 +29,7 @@ export default function AdministracionUsuariosPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/admin/users/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/users/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setUsers(d.results || d));
   }, [token]);

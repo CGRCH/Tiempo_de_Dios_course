@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Tag } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -22,7 +22,7 @@ export default function AdministracionTicketsPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/admin/tickets/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/tickets/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setTickets(d.results || d));
   }, [token]);
@@ -30,7 +30,7 @@ export default function AdministracionTicketsPage() {
   const reply = async (id: number) => {
     await fetch(`${API_URL}/admin/tickets/${id}/reply/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ message: 'Respuesta desde panel tickets', status: 'in_progress' }),
     });
   };

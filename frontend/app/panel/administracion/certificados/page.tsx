@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -29,7 +29,7 @@ export default function AdminCertPage() {
 
   const load = () => {
     if (!token) return;
-    fetch(`${API_URL}/admin/certificates/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/certificates/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setCerts(Array.isArray(d) ? d : d.results || []));
   };
@@ -41,7 +41,7 @@ export default function AdminCertPage() {
   const reissue = async (id: number) => {
     const r = await fetch(`${API_URL}/admin/certificates/${id}/reissue/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include', headers: authHeaders(token),
     });
     const data = await r.json();
     setMsg(`Certificado reemitido. Nuevo código: ${data.verification_code}`);

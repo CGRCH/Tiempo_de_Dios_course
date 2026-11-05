@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, SiteFooter, SiteHeader } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -18,7 +18,7 @@ export default function MisCertificadosPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/me/certificates/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/me/certificates/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setItems(d.results || d));
   }, [token]);

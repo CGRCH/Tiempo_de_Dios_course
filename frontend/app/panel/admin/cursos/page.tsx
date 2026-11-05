@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL, Course, formatCLP } from '@/lib/api';
+import { API_URL, Course, formatCLP , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -22,7 +22,7 @@ export default function AdminCursosPricePage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/admin/courses/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/courses/?page_size=100`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => {
         const list = d.results || d;
@@ -37,7 +37,7 @@ export default function AdminCursosPricePage() {
     const price_clp = prices[slug] ?? 0;
     const res = await fetch(`${API_URL}/admin/courses/${slug}/price/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ price_clp }),
     });
     if (res.ok) setMsg(`Precio actualizado: ${slug}`);

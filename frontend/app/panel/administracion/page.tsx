@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card, Headline, Pill, Tag } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -28,16 +28,16 @@ export default function AdministracionPanelPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/admin/support-stats/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/support-stats/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then(setStats);
-    fetch(`${API_URL}/admin/tickets/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/tickets/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setTickets((d.results || d).slice(0, 4)));
-    fetch(`${API_URL}/admin/courses/pending/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/courses/pending/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setPending(d.results || d));
-    fetch(`${API_URL}/admin/users/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/users/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => setUsers((d.results || d).slice(0, 5)));
   }, [token]);
@@ -45,7 +45,7 @@ export default function AdministracionPanelPage() {
   const approveCourse = async (slug: string) => {
     await fetch(`${API_URL}/admin/courses/${slug}/approve/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ action: 'approve' }),
     });
   };
@@ -53,7 +53,7 @@ export default function AdministracionPanelPage() {
   const replyTicket = async (id: number) => {
     await fetch(`${API_URL}/admin/tickets/${id}/reply/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ message: 'Respuesta de soporte QA', status: 'in_progress' }),
     });
   };
@@ -64,7 +64,7 @@ export default function AdministracionPanelPage() {
     if (!u || !c) return;
     await fetch(`${API_URL}/admin/enrollments/manual/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ user_id: u.id, course_id: c.id }),
     });
   };

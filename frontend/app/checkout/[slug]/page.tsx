@@ -3,7 +3,7 @@
 import { CourseCover } from '@/components/CourseCover';
 import { Card, Headline, Pill, SectionTitle, SiteFooter, SiteHeader, Tag } from '@/components/ui';
 import { firstPreviewLesson } from '@/lib/courseLessons';
-import { API_URL, Course, formatCLP } from '@/lib/api';
+import { API_URL, Course, formatCLP , authHeaders } from '@/lib/api';
 import { registerPath } from '@/lib/authPaths';
 import { useAuth } from '@/lib/auth';
 import { useParams, useRouter } from 'next/navigation';
@@ -25,17 +25,15 @@ export default function CheckoutPage() {
       return;
     }
     fetch(`${API_URL}/courses/${slug}/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include', headers: authHeaders(token),
     })
       .then((r) => r.json())
       .then(setCourse);
 
     fetch(`${API_URL}/courses/${slug}/enroll/`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      headers: authHeaders(token),
       body: JSON.stringify({ method: 'webpay' }),
     }).then(async (res) => {
       if (!res.ok) return;
@@ -53,10 +51,8 @@ export default function CheckoutPage() {
     setBusy(true);
     const res = await fetch(`${API_URL}/checkout/confirm/`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      headers: authHeaders(token),
       body: JSON.stringify({ transaction_id: transactionId }),
     });
     setBusy(false);

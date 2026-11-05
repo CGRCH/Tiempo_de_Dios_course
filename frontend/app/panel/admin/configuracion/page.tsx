@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL } from '@/lib/api';
+import { API_URL , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 
@@ -33,7 +33,7 @@ export default function AdminConfigPage() {
   const save = async () => {
     const res = await fetch(`${API_URL}/admin/settings/`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'include', headers: authHeaders(token),
       body: JSON.stringify({ teacher_earnings_visible: visible }),
     });
     if (res.ok) setSavedMsg('Configuración guardada correctamente.');

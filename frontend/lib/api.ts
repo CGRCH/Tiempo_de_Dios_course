@@ -58,17 +58,23 @@ export type User = {
   bio?: string;
 };
 
-function authHeaders(token?: string | null): HeadersInit {
-  const h: HeadersInit = { 'Content-Type': 'application/json' };
-  if (token) h['Authorization'] = `Bearer ${token}`;
+/** Cookie session auth — do not send Bearer for `cookie` sentinel. */
+export function authHeaders(token?: string | null, json = true): HeadersInit {
+  const h: HeadersInit = {};
+  if (json) h['Content-Type'] = 'application/json';
+  if (token && token !== 'cookie') h['Authorization'] = `Bearer ${token}`;
   return h;
 }
 
+export function withCredentials(init: RequestInit = {}): RequestInit {
+  return { ...init, credentials: 'include' };
+}
+
 export async function apiGet<T>(path: string, token?: string | null): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    headers: authHeaders(token),
+  const res = await fetch(`${API_URL}${path}`, withCredentials({
+    headers: authHeaders(token, false),
     cache: 'no-store',
-  });
+  }));
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -78,11 +84,11 @@ export async function apiPost<T>(
   body?: unknown,
   token?: string | null,
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, withCredentials({
     method: 'POST',
     headers: authHeaders(token),
     body: body ? JSON.stringify(body) : undefined,
-  });
+  }));
   if (!res.ok) throw new Error(await res.text());
   if (res.status === 204) return {} as T;
   return res.json();
@@ -122,6 +128,7 @@ export function absoluteMediaUrl(path: string | null | undefined): string | null
 export function resolveMediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (typeof window !== 'undefined') {
+    if (url.startsWith('http')) return url;
     const idx = url.indexOf('/media/');
     if (idx >= 0) return url.slice(idx);
   }

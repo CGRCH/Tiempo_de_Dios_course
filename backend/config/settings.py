@@ -120,10 +120,26 @@ CORS_ALLOWED_ORIGINS = [
     ).split(",")
     if o.strip()
 ]
+CORS_ALLOW_CREDENTIALS = True
+
+ALLOW_SIMULATED_PAYMENTS = os.environ.get(
+    "ALLOW_SIMULATED_PAYMENTS",
+    "1" if DEBUG else "0",
+) == "1"
+
+JWT_ACCESS_COOKIE_NAME = os.environ.get("JWT_ACCESS_COOKIE_NAME", "td_access")
+JWT_REFRESH_COOKIE_NAME = os.environ.get("JWT_REFRESH_COOKIE_NAME", "td_refresh")
+JWT_COOKIE_SECURE = os.environ.get("JWT_COOKIE_SECURE", "0" if DEBUG else "1") == "1"
+JWT_COOKIE_SAMESITE = os.environ.get("JWT_COOKIE_SAMESITE", "Lax")
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_REFERRER_POLICY = "same-origin"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "users.authentication.CookieJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticatedOrReadOnly",),
     "DEFAULT_FILTER_BACKENDS": (
@@ -133,6 +149,9 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 24,
+    "DEFAULT_THROTTLE_RATES": {
+        "auth": "30/minute",
+    },
 }
 
 SIMPLE_JWT = {

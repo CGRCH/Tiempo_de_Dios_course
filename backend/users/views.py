@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.permissions import IsAdministracion, IsSuperAdmin
+from core.throttling import AuthRateThrottle
 from core.utils import log_action
 from users.models import User
 from users.serializers import (
@@ -27,6 +28,7 @@ ROLE_TO_GROUP = {
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
 
 
 class MeView(generics.RetrieveUpdateAPIView):

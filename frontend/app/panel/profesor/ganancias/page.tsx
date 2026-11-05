@@ -2,7 +2,7 @@
 
 import { PanelShell } from '@/components/PanelShell';
 import { Card } from '@/components/ui';
-import { API_URL, formatCLP } from '@/lib/api';
+import { API_URL, formatCLP , authHeaders } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useProfesorNav } from '@/lib/useProfesorNav';
 import { useRouter } from 'next/navigation';
@@ -29,7 +29,7 @@ export default function ProfesorGananciasPage() {
 
   useEffect(() => {
     if (!token || checked !== true) return;
-    fetch(`${API_URL}/teacher/earnings/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/teacher/earnings/`, { credentials: 'include', headers: authHeaders(token) })
       .then((r) => r.json())
       .then((d) => {
         if (!d.visible) {

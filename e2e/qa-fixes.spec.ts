@@ -122,7 +122,8 @@ test.describe('QA fixes UI', () => {
     await expect(page.getByTestId('admin-transactions-page')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('td').filter({ hasText: '$' }).first()).toBeVisible();
     await page.goto('/panel/admin/cursos');
-    await page.getByTestId('save-price-estudio-de-romanos').click();
+    await expect(page.getByTestId('admin-price-editor')).toBeVisible({ timeout: 30000 });
+    await page.locator('[data-testid^="save-price-"]').first().click();
     await page.screenshot({ path: path.join(shots, '07-admin-prices.png'), fullPage: true });
   });
 });

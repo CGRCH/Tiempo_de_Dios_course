@@ -1,3 +1,7 @@
+import os
+import re
+
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import generics, status
@@ -215,6 +219,9 @@ class LessonVideoUploadView(APIView):
     permission_classes = [IsAuthenticated, IsProfesor]
     parser_classes = [MultiPartParser, FormParser]
 
+    ALLOWED_EXTENSIONS = {".mp4", ".mov", ".webm", ".mkv"}
+    MAX_BYTES = 500 * 1024 * 1024
+
     def post(self, request, lesson_id):
         lesson = Lesson.objects.select_related("module__course").get(pk=lesson_id)
         if lesson.course.teacher != request.user:
@@ -222,7 +229,16 @@ class LessonVideoUploadView(APIView):
         video = request.FILES.get("video")
         if not video:
             return Response({"detail": "Archivo requerido."}, status=status.HTTP_400_BAD_REQUEST)
-        path = f"videos/lesson_{lesson_id}_{video.name}"
+        if video.size > self.MAX_BYTES:
+            return Response(
+                {"detail": "El archivo supera el tamaño máximo permitido."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            safe_name = self._safe_filename(video.name)
+        except DjangoValidationError:
+            return Response({"detail": "Tipo de archivo no permitido."}, status=status.HTTP_400_BAD_REQUEST)
+        path = f"videos/lesson_{lesson_id}_{safe_name}"
         from django.core.files.storage import default_storage
 
         saved = default_storage.save(path, video)
@@ -231,6 +247,17 @@ class LessonVideoUploadView(APIView):
         lesson.save(update_fields=["duration_seconds", "video_status"])
         transcode_lesson_video.delay(lesson.id, saved)
         return Response({"status": "processing", "lesson_id": lesson.id, "video_status": "processing"})
+
+    @classmethod
+    def _safe_filename(cls, original: str) -> str:
+        base = os.path.basename(original or "video.mp4")
+        base = re.sub(r"[^\w.\-]", "_", base)
+        root, ext = os.path.splitext(base)
+        ext = ext.lower()
+        if ext not in cls.ALLOWED_EXTENSIONS:
+            raise DjangoValidationError("invalid extension")
+        root = (root or "video")[:80]
+        return f"{root}{ext}"
 
 
 class TeacherModuleCreateView(APIView):
